@@ -1,0 +1,201 @@
+client_id,age,gender,location,care_level
+CL001,91,Male,Kileleshwa,Medium
+CL002,73,Female,Lavington,Medium
+CL003,67,Male,Runda,Medium
+CL004,93,Male,Langata,Low
+CL005,85,Female,Langata,Low
+CL006,79,Female,Nairobi West,Medium
+CL007,78,Male,Kilimani,Low
+CL008,91,Male,Nairobi West,Low
+CL009,84,Female,Parklands,High
+CL010,82,Female,Kileleshwa,High
+CL011,62,Male,Langata,Medium
+CL012,64,Male,Runda,Medium
+CL013,85,Male,Karen,Low
+CL014,85,Female,Lavington,Low
+CL015,89,Male,Kilimani,Medium
+CL016,66,Female,Kileleshwa,High
+CL017,85,Female,Kileleshwa,Medium
+CL018,81,Female,Lavington,Low
+CL019,64,Female,Parklands,High
+CL020,72,Male,Lavington,High
+CL021,69,Female,Kilimani,Low
+CL022,76,Female,Nairobi West,High
+CL023,69,Female,Nairobi West,High
+CL024,91,Male,Runda,High
+CL025,88,Male,Lavington,Low
+CL026,88,Female,South B,Medium
+CL027,79,Male,Runda,Low
+CL028,82,Female,Karen,Medium
+CL029,88,Female,Langata,Medium
+CL030,78,Female,Kilimani,High
+CL031,92,Male,South B,High
+CL032,95,Female,South B,High
+CL033,72,Male,Runda,Medium
+CL034,92,Female,Langata,Medium
+CL035,66,Male,Kilimani,High
+CL036,71,Female,Westlands,High
+CL037,88,Male,Parklands,High
+CL038,70,Male,Lavington,Medium
+CL039,84,Male,Lavington,High
+CL040,63,Male,Kilimani,Medium
+CL041,66,Male,Karen,Medium
+CL042,69,Male,Kilimani,High
+CL043,69,Male,Karen,High
+CL044,85,Female,Runda,High
+CL045,65,Male,Parklands,Medium
+CL046,81,Female,Parklands,Low
+CL047,87,Male,Langata,Medium
+CL048,79,Female,Westlands,Medium
+CL049,91,Female,Westlands,Low
+CL050,69,Female,Karen,Low
+CL051,92,Female,Lavington,High
+CL052,68,Male,Nairobi West,Low
+CL053,71,Female,South B,Low
+CL054,86,Male,Westlands,Medium
+CL055,78,Male,Westlands,High
+CL056,75,Male,South B,Low
+CL057,83,Male,South B,Medium
+CL058,84,Male,Nairobi West,Low
+CL059,68,Male,Langata,High
+CL060,90,Male,Parklands,Low
+CL061,93,Female,Karen,Low
+CL062,70,Male,South B,High
+CL063,69,Male,Kilimani,Low
+CL064,88,Male,Langata,Medium
+CL065,63,Male,Parklands,Medium
+CL066,75,Male,Kilimani,Medium
+CL067,74,Female,Lavington,Low
+CL068,81,Female,Nairobi West,Low
+CL069,78,Male,Nairobi West,High
+CL070,90,Male,Runda,Low
+CL071,65,Female,Karen,Low
+CL072,69,Male,Kilimani,Medium
+CL073,75,Male,Kilimani,Low
+CL074,75,Male,Runda,Medium
+CL075,64,Female,South B,High
+CL076,94,Female,Parklands,High
+CL077,75,Female,Karen,Medium
+CL078,60,Male,Westlands,High
+CL079,86,Female,Kilimani,High
+CL080,83,Female,Parklands,High
+CL081,92,Female,Kileleshwa,Medium
+CL082,62,Male,Lavington,Medium
+CL083,61,Male,Kilimani,Medium
+CL084,75,Female,Runda,High
+CL085,81,Female,Langata,Medium
+CL086,94,Male,Nairobi West,High
+CL087,89,Male,Nairobi West,Low
+CL088,64,Male,Langata,Medium
+CL089,72,Female,Westlands,Low
+CL090,80,Male,Parklands,Medium
+CL091,94,Male,Karen,Low
+CL092,72,Male,Lavington,Low
+CL093,81,Male,Kilimani,Medium
+CL094,87,Male,South B,Medium
+CL095,81,Female,South B,High
+CL096,91,Male,Parklands,Medium
+CL097,65,Male,Kilimani,Medium
+CL098,71,Male,Lavington,Low
+CL099,65,Male,Karen,Medium
+CL100,88,Male,Nairobi West,High
+CL101,88,Male,South B,Low
+CL102,82,Male,Karen,High
+CL103,63,Female,Kileleshwa,Medium
+CL104,92,Female,Langata,Low
+CL105,88,Female,Nairobi West,Low
+CL106,75,Male,Lavington,Medium
+CL107,62,Female,South B,Medium
+CL108,83,Male,Kilimani,High
+CL109,68,Male,Kileleshwa,Medium
+CL110,77,Female,Kilimani,Low
+CL111,71,Male,Parklands,Medium
+CL112,95,Female,Karen,Medium
+CL113,88,Female,Runda,Medium
+CL114,91,Female,Kilimani,Low
+CL115,64,Male,Nairobi West,High
+CL116,88,Female,Lavington,High
+CL117,82,Female,Parklands,High
+CL118,78,Male,Nairobi West,High
+CL119,71,Male,Parklands,Low
+CL120,67,Female,Nairobi West,Low
+CL121,91,Female,Lavington,High
+CL122,83,Male,Parklands,Low
+CL123,65,Female,Karen,Medium
+CL124,90,Male,Kileleshwa,High
+CL125,64,Female,Lavington,High
+CL126,64,Male,South B,High
+CL127,93,Male,Nairobi West,High
+CL128,71,Female,Kileleshwa,High
+CL129,63,Female,Parklands,Low
+CL130,79,Female,Nairobi West,Medium
+CL131,74,Male,Parklands,Medium
+CL132,65,Male,Westlands,High
+CL133,95,Male,Nairobi West,High
+CL134,79,Female,Parklands,High
+CL135,70,Female,Nairobi West,High
+CL136,81,Female,Langata,Low
+CL137,62,Male,Westlands,High
+CL138,86,Female,South B,High
+CL139,94,Male,Karen,Medium
+CL140,75,Male,Karen,Medium
+CL141,64,Female,Nairobi West,Medium
+CL142,86,Male,South B,Low
+CL143,81,Female,Lavington,High
+CL144,80,Male,Kileleshwa,Low
+CL145,83,Female,Lavington,Low
+CL146,89,Female,Karen,Medium
+CL147,75,Female,Kilimani,Low
+CL148,78,Male,Runda,Medium
+CL149,75,Female,Lavington,High
+CL150,80,Female,Nairobi West,Medium
+CL151,92,Male,South B,Medium
+CL152,91,Female,Kilimani,Medium
+CL153,92,Male,Westlands,Low
+CL154,82,Female,Langata,Medium
+CL155,91,Male,Karen,High
+CL156,60,Female,Kileleshwa,Low
+CL157,76,Male,Kileleshwa,Medium
+CL158,62,Male,Langata,High
+CL159,95,Female,Lavington,High
+CL160,78,Female,Kileleshwa,High
+CL161,88,Male,Runda,High
+CL162,67,Female,Kilimani,Medium
+CL163,83,Male,Parklands,Medium
+CL164,69,Female,Runda,High
+CL165,85,Female,Langata,Low
+CL166,68,Male,South B,High
+CL167,89,Female,Runda,High
+CL168,68,Male,Runda,Medium
+CL169,70,Male,Runda,High
+CL170,79,Male,Parklands,High
+CL171,94,Male,Runda,Medium
+CL172,90,Female,Lavington,Medium
+CL173,67,Male,Runda,Medium
+CL174,61,Male,Karen,High
+CL175,74,Female,Runda,Medium
+CL176,70,Male,Nairobi West,High
+CL177,75,Female,Runda,High
+CL178,67,Female,Langata,Medium
+CL179,80,Male,Nairobi West,Medium
+CL180,73,Male,Parklands,High
+CL181,90,Female,Nairobi West,High
+CL182,73,Male,South B,High
+CL183,84,Male,Nairobi West,Medium
+CL184,94,Male,Parklands,Medium
+CL185,76,Male,Westlands,Low
+CL186,77,Male,Westlands,Medium
+CL187,78,Female,South B,Medium
+CL188,90,Male,Parklands,High
+CL189,77,Male,Kilimani,High
+CL190,94,Male,Kileleshwa,Medium
+CL191,69,Male,Langata,Medium
+CL192,65,Male,South B,High
+CL193,76,Male,Westlands,Low
+CL194,94,Male,Parklands,High
+CL195,77,Female,Kilimani,High
+CL196,75,Female,Langata,High
+CL197,93,Female,Westlands,Low
+CL198,66,Male,Lavington,High
+CL199,90,Female,Nairobi West,Low
+CL200,95,Female,Kileleshwa,High

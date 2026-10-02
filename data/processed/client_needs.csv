@@ -1,0 +1,389 @@
+client_id,service
+CL001,Health Monitoring
+CL001,Meal Preparation
+CL002,Dementia Care
+CL003,Dementia Care
+CL003,Meal Preparation
+CL004,Personal Care
+CL005,Mobility Assistance
+CL005,Dementia Care
+CL005,Meal Preparation
+CL006,Companionship
+CL006,Personal Care
+CL006,Mobility Assistance
+CL007,Companionship
+CL008,Health Monitoring
+CL008,Personal Care
+CL009,Dementia Care
+CL009,Companionship
+CL009,Household Assistance
+CL010,Personal Care
+CL010,Medication Support
+CL011,Health Monitoring
+CL011,Meal Preparation
+CL012,Health Monitoring
+CL012,Personal Care
+CL012,Dementia Care
+CL013,Dementia Care
+CL013,Personal Care
+CL014,Meal Preparation
+CL015,Health Monitoring
+CL016,Dementia Care
+CL016,Meal Preparation
+CL016,Personal Care
+CL017,Meal Preparation
+CL018,Mobility Assistance
+CL018,Personal Care
+CL019,Household Assistance
+CL019,Health Monitoring
+CL019,Mobility Assistance
+CL020,Meal Preparation
+CL020,Companionship
+CL020,Mobility Assistance
+CL021,Personal Care
+CL021,Health Monitoring
+CL021,Household Assistance
+CL022,Meal Preparation
+CL022,Personal Care
+CL023,Dementia Care
+CL024,Mobility Assistance
+CL024,Health Monitoring
+CL025,Meal Preparation
+CL025,Medication Support
+CL026,Companionship
+CL026,Medication Support
+CL026,Meal Preparation
+CL027,Mobility Assistance
+CL027,Companionship
+CL028,Personal Care
+CL028,Mobility Assistance
+CL028,Medication Support
+CL029,Household Assistance
+CL030,Dementia Care
+CL030,Meal Preparation
+CL030,Companionship
+CL031,Dementia Care
+CL031,Medication Support
+CL031,Health Monitoring
+CL032,Mobility Assistance
+CL033,Health Monitoring
+CL034,Health Monitoring
+CL035,Meal Preparation
+CL035,Mobility Assistance
+CL035,Health Monitoring
+CL036,Health Monitoring
+CL036,Household Assistance
+CL036,Dementia Care
+CL037,Mobility Assistance
+CL037,Household Assistance
+CL037,Personal Care
+CL038,Personal Care
+CL038,Dementia Care
+CL038,Mobility Assistance
+CL039,Meal Preparation
+CL039,Companionship
+CL039,Dementia Care
+CL040,Companionship
+CL041,Mobility Assistance
+CL041,Dementia Care
+CL041,Household Assistance
+CL042,Medication Support
+CL043,Health Monitoring
+CL043,Companionship
+CL044,Mobility Assistance
+CL044,Meal Preparation
+CL044,Dementia Care
+CL045,Personal Care
+CL045,Dementia Care
+CL046,Companionship
+CL046,Mobility Assistance
+CL047,Household Assistance
+CL048,Companionship
+CL048,Dementia Care
+CL049,Dementia Care
+CL049,Meal Preparation
+CL050,Household Assistance
+CL051,Companionship
+CL051,Meal Preparation
+CL052,Personal Care
+CL053,Household Assistance
+CL054,Personal Care
+CL054,Dementia Care
+CL055,Personal Care
+CL056,Companionship
+CL056,Medication Support
+CL057,Medication Support
+CL057,Household Assistance
+CL058,Household Assistance
+CL059,Household Assistance
+CL059,Mobility Assistance
+CL060,Household Assistance
+CL060,Companionship
+CL061,Medication Support
+CL061,Meal Preparation
+CL061,Health Monitoring
+CL062,Medication Support
+CL063,Household Assistance
+CL063,Dementia Care
+CL063,Personal Care
+CL064,Mobility Assistance
+CL064,Household Assistance
+CL064,Companionship
+CL065,Dementia Care
+CL066,Household Assistance
+CL066,Dementia Care
+CL067,Mobility Assistance
+CL067,Personal Care
+CL068,Meal Preparation
+CL068,Personal Care
+CL069,Mobility Assistance
+CL069,Meal Preparation
+CL070,Companionship
+CL071,Household Assistance
+CL071,Dementia Care
+CL071,Companionship
+CL072,Mobility Assistance
+CL073,Personal Care
+CL074,Companionship
+CL074,Mobility Assistance
+CL074,Dementia Care
+CL075,Companionship
+CL075,Personal Care
+CL075,Meal Preparation
+CL076,Household Assistance
+CL077,Mobility Assistance
+CL077,Dementia Care
+CL078,Companionship
+CL079,Dementia Care
+CL080,Meal Preparation
+CL081,Meal Preparation
+CL081,Personal Care
+CL081,Medication Support
+CL082,Mobility Assistance
+CL083,Dementia Care
+CL083,Medication Support
+CL084,Medication Support
+CL085,Household Assistance
+CL085,Dementia Care
+CL085,Mobility Assistance
+CL086,Meal Preparation
+CL087,Household Assistance
+CL087,Health Monitoring
+CL087,Dementia Care
+CL088,Household Assistance
+CL088,Mobility Assistance
+CL089,Dementia Care
+CL090,Medication Support
+CL090,Household Assistance
+CL091,Health Monitoring
+CL091,Personal Care
+CL091,Household Assistance
+CL092,Medication Support
+CL092,Household Assistance
+CL093,Companionship
+CL093,Dementia Care
+CL094,Household Assistance
+CL094,Dementia Care
+CL095,Medication Support
+CL095,Mobility Assistance
+CL095,Personal Care
+CL096,Mobility Assistance
+CL096,Medication Support
+CL097,Personal Care
+CL097,Mobility Assistance
+CL097,Medication Support
+CL098,Mobility Assistance
+CL099,Dementia Care
+CL100,Companionship
+CL100,Household Assistance
+CL101,Mobility Assistance
+CL102,Mobility Assistance
+CL102,Health Monitoring
+CL102,Personal Care
+CL103,Dementia Care
+CL103,Companionship
+CL104,Mobility Assistance
+CL105,Personal Care
+CL105,Meal Preparation
+CL105,Mobility Assistance
+CL106,Mobility Assistance
+CL107,Mobility Assistance
+CL107,Dementia Care
+CL108,Dementia Care
+CL108,Mobility Assistance
+CL109,Meal Preparation
+CL109,Medication Support
+CL110,Meal Preparation
+CL110,Dementia Care
+CL111,Health Monitoring
+CL111,Companionship
+CL112,Health Monitoring
+CL112,Household Assistance
+CL112,Medication Support
+CL113,Meal Preparation
+CL114,Household Assistance
+CL114,Companionship
+CL115,Mobility Assistance
+CL115,Meal Preparation
+CL115,Personal Care
+CL116,Dementia Care
+CL117,Household Assistance
+CL117,Medication Support
+CL117,Personal Care
+CL118,Meal Preparation
+CL119,Household Assistance
+CL120,Mobility Assistance
+CL120,Health Monitoring
+CL120,Dementia Care
+CL121,Meal Preparation
+CL121,Medication Support
+CL121,Mobility Assistance
+CL122,Health Monitoring
+CL122,Mobility Assistance
+CL122,Personal Care
+CL123,Meal Preparation
+CL123,Personal Care
+CL123,Household Assistance
+CL124,Health Monitoring
+CL124,Personal Care
+CL124,Dementia Care
+CL125,Companionship
+CL125,Dementia Care
+CL125,Health Monitoring
+CL126,Companionship
+CL127,Household Assistance
+CL128,Mobility Assistance
+CL129,Medication Support
+CL130,Mobility Assistance
+CL131,Health Monitoring
+CL131,Medication Support
+CL131,Companionship
+CL132,Health Monitoring
+CL132,Meal Preparation
+CL132,Mobility Assistance
+CL133,Companionship
+CL134,Household Assistance
+CL134,Companionship
+CL134,Health Monitoring
+CL135,Dementia Care
+CL135,Health Monitoring
+CL135,Medication Support
+CL136,Household Assistance
+CL137,Personal Care
+CL138,Medication Support
+CL139,Mobility Assistance
+CL140,Dementia Care
+CL140,Household Assistance
+CL140,Medication Support
+CL141,Household Assistance
+CL141,Companionship
+CL142,Household Assistance
+CL142,Mobility Assistance
+CL143,Mobility Assistance
+CL143,Meal Preparation
+CL143,Personal Care
+CL144,Personal Care
+CL144,Meal Preparation
+CL145,Companionship
+CL145,Health Monitoring
+CL145,Mobility Assistance
+CL146,Household Assistance
+CL146,Dementia Care
+CL147,Companionship
+CL147,Meal Preparation
+CL148,Medication Support
+CL149,Health Monitoring
+CL150,Meal Preparation
+CL150,Dementia Care
+CL151,Companionship
+CL152,Mobility Assistance
+CL153,Health Monitoring
+CL153,Medication Support
+CL153,Companionship
+CL154,Dementia Care
+CL155,Companionship
+CL155,Personal Care
+CL155,Medication Support
+CL156,Mobility Assistance
+CL157,Medication Support
+CL157,Household Assistance
+CL157,Meal Preparation
+CL158,Personal Care
+CL158,Medication Support
+CL159,Mobility Assistance
+CL160,Household Assistance
+CL160,Meal Preparation
+CL160,Dementia Care
+CL161,Household Assistance
+CL161,Health Monitoring
+CL162,Medication Support
+CL162,Household Assistance
+CL162,Meal Preparation
+CL163,Personal Care
+CL163,Dementia Care
+CL163,Meal Preparation
+CL164,Companionship
+CL164,Health Monitoring
+CL165,Mobility Assistance
+CL165,Household Assistance
+CL166,Meal Preparation
+CL167,Household Assistance
+CL167,Health Monitoring
+CL167,Medication Support
+CL168,Dementia Care
+CL169,Health Monitoring
+CL169,Personal Care
+CL170,Household Assistance
+CL170,Mobility Assistance
+CL171,Household Assistance
+CL172,Dementia Care
+CL173,Personal Care
+CL174,Dementia Care
+CL175,Household Assistance
+CL176,Medication Support
+CL176,Meal Preparation
+CL176,Mobility Assistance
+CL177,Meal Preparation
+CL177,Companionship
+CL178,Companionship
+CL179,Health Monitoring
+CL179,Medication Support
+CL180,Personal Care
+CL180,Health Monitoring
+CL181,Medication Support
+CL182,Health Monitoring
+CL182,Dementia Care
+CL183,Household Assistance
+CL183,Companionship
+CL183,Health Monitoring
+CL184,Meal Preparation
+CL185,Personal Care
+CL185,Dementia Care
+CL185,Household Assistance
+CL186,Household Assistance
+CL186,Companionship
+CL187,Household Assistance
+CL187,Mobility Assistance
+CL188,Mobility Assistance
+CL189,Medication Support
+CL189,Meal Preparation
+CL189,Mobility Assistance
+CL190,Medication Support
+CL191,Dementia Care
+CL191,Medication Support
+CL192,Medication Support
+CL192,Companionship
+CL193,Household Assistance
+CL194,Household Assistance
+CL194,Medication Support
+CL195,Personal Care
+CL195,Medication Support
+CL196,Mobility Assistance
+CL196,Meal Preparation
+CL197,Health Monitoring
+CL197,Dementia Care
+CL197,Household Assistance
+CL198,Health Monitoring
+CL199,Medication Support
+CL200,Companionship
+CL200,Mobility Assistance

@@ -1,0 +1,289 @@
+caregiver_id,service
+CG001,Meal Preparation
+CG001,Dementia Care
+CG002,Health Monitoring
+CG002,Mobility Assistance
+CG002,Companionship
+CG002,Medication Support
+CG003,Medication Support
+CG003,Mobility Assistance
+CG004,Personal Care
+CG004,Household Assistance
+CG005,Health Monitoring
+CG005,Household Assistance
+CG006,Companionship
+CG006,Mobility Assistance
+CG006,Health Monitoring
+CG006,Dementia Care
+CG007,Mobility Assistance
+CG007,Dementia Care
+CG008,Dementia Care
+CG008,Mobility Assistance
+CG009,Mobility Assistance
+CG009,Personal Care
+CG009,Household Assistance
+CG010,Dementia Care
+CG010,Meal Preparation
+CG010,Personal Care
+CG010,Household Assistance
+CG011,Companionship
+CG011,Meal Preparation
+CG012,Meal Preparation
+CG012,Personal Care
+CG012,Dementia Care
+CG013,Mobility Assistance
+CG013,Medication Support
+CG013,Health Monitoring
+CG013,Meal Preparation
+CG014,Mobility Assistance
+CG014,Companionship
+CG014,Dementia Care
+CG015,Household Assistance
+CG015,Medication Support
+CG015,Personal Care
+CG016,Dementia Care
+CG016,Household Assistance
+CG016,Meal Preparation
+CG017,Household Assistance
+CG017,Dementia Care
+CG017,Personal Care
+CG018,Personal Care
+CG018,Dementia Care
+CG018,Household Assistance
+CG019,Medication Support
+CG019,Health Monitoring
+CG020,Meal Preparation
+CG020,Dementia Care
+CG020,Medication Support
+CG020,Health Monitoring
+CG021,Household Assistance
+CG021,Medication Support
+CG022,Meal Preparation
+CG022,Companionship
+CG023,Household Assistance
+CG023,Dementia Care
+CG023,Mobility Assistance
+CG023,Companionship
+CG024,Dementia Care
+CG024,Medication Support
+CG024,Meal Preparation
+CG025,Meal Preparation
+CG025,Companionship
+CG025,Health Monitoring
+CG026,Dementia Care
+CG026,Medication Support
+CG026,Mobility Assistance
+CG027,Companionship
+CG027,Meal Preparation
+CG027,Medication Support
+CG028,Personal Care
+CG028,Companionship
+CG028,Medication Support
+CG028,Health Monitoring
+CG029,Mobility Assistance
+CG029,Medication Support
+CG029,Health Monitoring
+CG030,Health Monitoring
+CG030,Medication Support
+CG031,Dementia Care
+CG031,Medication Support
+CG031,Personal Care
+CG031,Meal Preparation
+CG032,Medication Support
+CG032,Household Assistance
+CG032,Companionship
+CG033,Personal Care
+CG033,Health Monitoring
+CG033,Household Assistance
+CG034,Health Monitoring
+CG034,Meal Preparation
+CG034,Dementia Care
+CG034,Personal Care
+CG035,Meal Preparation
+CG035,Health Monitoring
+CG036,Companionship
+CG036,Personal Care
+CG036,Meal Preparation
+CG036,Household Assistance
+CG037,Meal Preparation
+CG037,Companionship
+CG038,Meal Preparation
+CG038,Companionship
+CG039,Companionship
+CG039,Meal Preparation
+CG039,Medication Support
+CG040,Medication Support
+CG040,Health Monitoring
+CG040,Mobility Assistance
+CG041,Mobility Assistance
+CG041,Household Assistance
+CG041,Personal Care
+CG042,Companionship
+CG042,Health Monitoring
+CG043,Mobility Assistance
+CG043,Companionship
+CG043,Meal Preparation
+CG044,Medication Support
+CG044,Health Monitoring
+CG045,Medication Support
+CG045,Household Assistance
+CG045,Dementia Care
+CG046,Medication Support
+CG046,Mobility Assistance
+CG046,Meal Preparation
+CG046,Companionship
+CG047,Dementia Care
+CG047,Medication Support
+CG047,Companionship
+CG048,Health Monitoring
+CG048,Meal Preparation
+CG049,Mobility Assistance
+CG049,Health Monitoring
+CG050,Dementia Care
+CG050,Companionship
+CG051,Medication Support
+CG051,Meal Preparation
+CG051,Health Monitoring
+CG051,Companionship
+CG052,Dementia Care
+CG052,Medication Support
+CG052,Personal Care
+CG053,Mobility Assistance
+CG053,Health Monitoring
+CG054,Meal Preparation
+CG054,Dementia Care
+CG054,Companionship
+CG054,Household Assistance
+CG055,Mobility Assistance
+CG055,Medication Support
+CG055,Meal Preparation
+CG056,Mobility Assistance
+CG056,Dementia Care
+CG057,Medication Support
+CG057,Mobility Assistance
+CG058,Household Assistance
+CG058,Personal Care
+CG059,Mobility Assistance
+CG059,Health Monitoring
+CG059,Meal Preparation
+CG060,Medication Support
+CG060,Mobility Assistance
+CG061,Medication Support
+CG061,Health Monitoring
+CG061,Mobility Assistance
+CG062,Medication Support
+CG062,Mobility Assistance
+CG062,Dementia Care
+CG063,Dementia Care
+CG063,Companionship
+CG064,Household Assistance
+CG064,Dementia Care
+CG065,Medication Support
+CG065,Dementia Care
+CG065,Meal Preparation
+CG065,Mobility Assistance
+CG066,Mobility Assistance
+CG066,Household Assistance
+CG066,Personal Care
+CG067,Health Monitoring
+CG067,Medication Support
+CG067,Dementia Care
+CG068,Health Monitoring
+CG068,Dementia Care
+CG069,Companionship
+CG069,Meal Preparation
+CG069,Medication Support
+CG069,Mobility Assistance
+CG070,Personal Care
+CG070,Household Assistance
+CG070,Meal Preparation
+CG071,Companionship
+CG071,Household Assistance
+CG071,Mobility Assistance
+CG072,Personal Care
+CG072,Companionship
+CG072,Health Monitoring
+CG072,Medication Support
+CG073,Health Monitoring
+CG073,Household Assistance
+CG073,Dementia Care
+CG073,Personal Care
+CG074,Meal Preparation
+CG074,Mobility Assistance
+CG074,Health Monitoring
+CG074,Medication Support
+CG075,Companionship
+CG075,Personal Care
+CG075,Meal Preparation
+CG075,Dementia Care
+CG076,Dementia Care
+CG076,Mobility Assistance
+CG077,Dementia Care
+CG077,Companionship
+CG078,Personal Care
+CG078,Mobility Assistance
+CG078,Meal Preparation
+CG078,Medication Support
+CG079,Meal Preparation
+CG079,Medication Support
+CG080,Household Assistance
+CG080,Companionship
+CG081,Personal Care
+CG081,Companionship
+CG082,Companionship
+CG082,Meal Preparation
+CG082,Medication Support
+CG083,Companionship
+CG083,Dementia Care
+CG084,Dementia Care
+CG084,Medication Support
+CG084,Companionship
+CG084,Mobility Assistance
+CG085,Health Monitoring
+CG085,Meal Preparation
+CG085,Companionship
+CG086,Dementia Care
+CG086,Medication Support
+CG086,Companionship
+CG087,Health Monitoring
+CG087,Medication Support
+CG087,Meal Preparation
+CG088,Health Monitoring
+CG088,Medication Support
+CG088,Meal Preparation
+CG088,Mobility Assistance
+CG089,Dementia Care
+CG089,Personal Care
+CG089,Mobility Assistance
+CG089,Household Assistance
+CG090,Health Monitoring
+CG090,Personal Care
+CG090,Household Assistance
+CG091,Personal Care
+CG091,Medication Support
+CG092,Dementia Care
+CG092,Meal Preparation
+CG092,Mobility Assistance
+CG093,Personal Care
+CG093,Household Assistance
+CG094,Household Assistance
+CG094,Mobility Assistance
+CG094,Personal Care
+CG095,Companionship
+CG095,Health Monitoring
+CG096,Meal Preparation
+CG096,Personal Care
+CG096,Dementia Care
+CG096,Health Monitoring
+CG097,Meal Preparation
+CG097,Medication Support
+CG097,Mobility Assistance
+CG098,Dementia Care
+CG098,Companionship
+CG098,Meal Preparation
+CG099,Medication Support
+CG099,Health Monitoring
+CG100,Personal Care
+CG100,Mobility Assistance
+CG100,Medication Support
+CG100,Household Assistance

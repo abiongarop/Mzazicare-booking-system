@@ -1,0 +1,101 @@
+caregiver_id,age,gender,experience_years,rating,location,availability
+CG001,31,Female,12,3.2,Karen,Part-time
+CG002,38,Female,12,4.4,Kilimani,Full-time
+CG003,51,Female,1,4.5,Kilimani,Part-time
+CG004,38,Female,9,4.1,Westlands,Weekends
+CG005,38,Male,10,4.5,Karen,Full-time
+CG006,34,Male,6,4.0,Karen,Part-time
+CG007,37,Male,2,4.0,Kilimani,Weekends
+CG008,30,Male,14,3.9,Lavington,Weekdays
+CG009,26,Male,9,3.1,Kilimani,Weekends
+CG010,29,Male,14,3.2,Runda,Weekdays
+CG011,36,Female,1,3.1,Westlands,Weekdays
+CG012,29,Female,14,4.3,Kilimani,Weekends
+CG013,41,Male,11,3.6,Lavington,Part-time
+CG014,47,Male,4,4.0,Karen,Full-time
+CG015,34,Female,3,4.8,South B,Weekends
+CG016,41,Female,11,3.5,Lavington,Full-time
+CG017,38,Female,13,3.8,Lavington,Weekends
+CG018,41,Female,4,4.5,Runda,Weekdays
+CG019,37,Male,7,3.5,South B,Part-time
+CG020,40,Female,4,3.2,Parklands,Weekdays
+CG021,51,Male,6,3.6,Westlands,Part-time
+CG022,55,Female,13,3.3,Langata,Full-time
+CG023,33,Female,13,4.9,Kileleshwa,Full-time
+CG024,48,Male,10,4.6,South B,Weekdays
+CG025,24,Female,11,4.3,Parklands,Weekdays
+CG026,45,Female,5,4.7,Kileleshwa,Part-time
+CG027,53,Female,12,4.6,Karen,Part-time
+CG028,30,Male,14,3.4,Parklands,Part-time
+CG029,33,Male,13,4.8,Nairobi West,Full-time
+CG030,44,Male,1,4.1,Kilimani,Weekdays
+CG031,43,Female,1,4.6,Westlands,Full-time
+CG032,29,Male,14,4.8,Kilimani,Part-time
+CG033,32,Male,9,3.6,Nairobi West,Weekdays
+CG034,51,Female,15,3.2,Parklands,Part-time
+CG035,43,Male,11,3.5,Lavington,Weekends
+CG036,52,Female,4,3.9,Westlands,Full-time
+CG037,45,Female,10,4.6,Parklands,Part-time
+CG038,38,Female,2,4.7,Langata,Part-time
+CG039,28,Female,14,3.0,Lavington,Full-time
+CG040,39,Male,11,4.0,South B,Part-time
+CG041,32,Male,4,3.8,South B,Weekends
+CG042,36,Female,2,3.4,Kileleshwa,Weekdays
+CG043,51,Male,8,3.2,Langata,Full-time
+CG044,27,Male,12,3.7,Lavington,Full-time
+CG045,39,Female,4,4.9,Parklands,Weekends
+CG046,32,Male,3,3.6,Karen,Weekends
+CG047,39,Female,8,4.0,Parklands,Full-time
+CG048,27,Female,2,4.4,Westlands,Part-time
+CG049,50,Male,8,3.7,Westlands,Weekends
+CG050,27,Female,7,4.9,Langata,Weekends
+CG051,40,Male,5,4.9,Kileleshwa,Weekends
+CG052,33,Female,5,3.5,Westlands,Full-time
+CG053,27,Male,1,4.0,Langata,Weekends
+CG054,34,Female,9,3.6,Kilimani,Part-time
+CG055,28,Female,11,3.6,Westlands,Weekends
+CG056,31,Female,10,3.1,Runda,Full-time
+CG057,29,Male,11,4.2,Runda,Weekdays
+CG058,40,Female,11,4.0,Lavington,Part-time
+CG059,40,Male,3,3.1,Karen,Weekends
+CG060,44,Female,1,3.6,South B,Full-time
+CG061,28,Female,9,4.8,Karen,Part-time
+CG062,46,Female,15,3.5,Westlands,Weekdays
+CG063,42,Female,8,3.3,Parklands,Weekdays
+CG064,24,Male,15,4.0,Kilimani,Part-time
+CG065,40,Female,15,5.0,Kilimani,Part-time
+CG066,41,Male,10,3.5,Westlands,Weekdays
+CG067,37,Male,9,4.3,South B,Weekdays
+CG068,27,Female,11,4.5,Kileleshwa,Weekdays
+CG069,26,Female,6,3.5,Nairobi West,Weekdays
+CG070,34,Male,9,4.5,Kileleshwa,Full-time
+CG071,31,Female,15,3.7,Nairobi West,Full-time
+CG072,47,Female,7,4.3,Nairobi West,Full-time
+CG073,43,Male,15,4.3,Langata,Weekdays
+CG074,37,Female,11,4.1,Kilimani,Weekdays
+CG075,50,Female,15,3.2,Westlands,Part-time
+CG076,35,Male,1,4.7,Nairobi West,Weekdays
+CG077,50,Female,5,3.6,Nairobi West,Full-time
+CG078,48,Female,14,3.4,South B,Part-time
+CG079,36,Male,6,3.1,Karen,Part-time
+CG080,38,Female,11,4.2,Westlands,Weekends
+CG081,45,Male,14,4.4,Kilimani,Weekdays
+CG082,46,Male,11,3.0,Parklands,Weekdays
+CG083,25,Female,15,4.0,Karen,Part-time
+CG084,40,Female,2,3.5,Runda,Weekends
+CG085,46,Male,7,4.3,Runda,Full-time
+CG086,48,Female,5,3.3,Langata,Weekends
+CG087,24,Female,6,4.4,Kileleshwa,Full-time
+CG088,45,Male,11,3.8,Kilimani,Weekdays
+CG089,43,Male,6,4.9,Kileleshwa,Weekdays
+CG090,32,Female,7,3.3,Kileleshwa,Part-time
+CG091,43,Male,9,3.7,Langata,Weekdays
+CG092,42,Female,7,3.2,Runda,Weekdays
+CG093,53,Male,8,4.8,Westlands,Weekends
+CG094,34,Female,5,4.8,Parklands,Weekdays
+CG095,29,Female,11,3.5,Karen,Part-time
+CG096,36,Female,1,4.3,Langata,Part-time
+CG097,54,Female,8,4.6,Kileleshwa,Part-time
+CG098,48,Male,7,4.1,Westlands,Part-time
+CG099,24,Female,13,4.1,Kileleshwa,Part-time
+CG100,35,Male,1,3.5,Parklands,Part-time
