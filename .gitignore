@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+
+# Python cache
+.pytest_cache/
+
+# Generated files
+*.log
+
+# OS
+.DS_Store
+Thumbs.dbgit init
