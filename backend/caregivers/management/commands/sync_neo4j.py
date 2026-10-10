@@ -123,6 +123,7 @@ class Command(BaseCommand):
             REQUIRE l.name IS UNIQUE
         """).consume()
 
+    
     @staticmethod
     def write_caregiver(tx, record):
         tx.run("""
@@ -134,54 +135,47 @@ class Command(BaseCommand):
                 c.availability = $availability,
                 c.is_verified = $is_verified
 
+            WITH c
+            OPTIONAL MATCH (c)-[old:LOCATED_IN]->(:Location)
+            DELETE old
+        """, record).consume()
+
+        tx.run("""
+            MATCH (c:Caregiver {caregiver_id: $caregiver_id})
             MERGE (l:Location {name: $location})
             MERGE (c)-[:LOCATED_IN]->(l)
+        """, record).consume()
 
-            WITH c
-            UNWIND $skills AS skill_name
-            MERGE (s:Skill {name: skill_name})
-            MERGE (c)-[:HAS_SKILL]->(s)
-        """, {
-            **record,
-            "skills": record["skills"] or [None],
-        }).consume()
-
-        # Load services separately to handle empty lists cleanly.
-        tx.run("""
-            MATCH (c:Caregiver {caregiver_id: $caregiver_id})
-            OPTIONAL MATCH (c)-[old:PROVIDES]->(:Service)
-            DELETE old
-        """, caregiver_id=record["caregiver_id"]).consume()
-
-        tx.run("""
-            MATCH (c:Caregiver {caregiver_id: $caregiver_id})
-            UNWIND $services AS service_name
-            WITH c, service_name
-            WHERE service_name IS NOT NULL
-            MERGE (s:Service {name: service_name})
-            MERGE (c)-[:PROVIDES]->(s)
-        """, {
-            "caregiver_id": record["caregiver_id"],
-            "services": record["services"] or [None],
-        }).consume()
-
-        # Replace the skill relationships with the current source data.
         tx.run("""
             MATCH (c:Caregiver {caregiver_id: $caregiver_id})
             OPTIONAL MATCH (c)-[old:HAS_SKILL]->(:Skill)
             DELETE old
-        """, caregiver_id=record["caregiver_id"]).consume()
+        """, record).consume()
 
         tx.run("""
             MATCH (c:Caregiver {caregiver_id: $caregiver_id})
             UNWIND $skills AS skill_name
-            WITH c, skill_name
-            WHERE skill_name IS NOT NULL
             MERGE (s:Skill {name: skill_name})
             MERGE (c)-[:HAS_SKILL]->(s)
         """, {
             "caregiver_id": record["caregiver_id"],
-            "skills": record["skills"] or [None],
+            "skills": record["skills"],
+        }).consume()
+
+        tx.run("""
+            MATCH (c:Caregiver {caregiver_id: $caregiver_id})
+            OPTIONAL MATCH (c)-[old:PROVIDES]->(:Service)
+            DELETE old
+        """, record).consume()
+
+        tx.run("""
+            MATCH (c:Caregiver {caregiver_id: $caregiver_id})
+            UNWIND $services AS service_name
+            MERGE (s:Service {name: service_name})
+            MERGE (c)-[:PROVIDES]->(s)
+        """, {
+            "caregiver_id": record["caregiver_id"],
+            "services": record["services"],
         }).consume()
 
     @staticmethod
@@ -192,6 +186,13 @@ class Command(BaseCommand):
                 c.gender = $gender,
                 c.care_level = $care_level
 
+            WITH c
+            OPTIONAL MATCH (c)-[old:LOCATED_IN]->(:Location)
+            DELETE old
+        """, record).consume()
+
+        tx.run("""
+            MATCH (c:Client {client_id: $client_id})
             MERGE (l:Location {name: $location})
             MERGE (c)-[:LOCATED_IN]->(l)
         """, record).consume()
@@ -200,16 +201,14 @@ class Command(BaseCommand):
             MATCH (c:Client {client_id: $client_id})
             OPTIONAL MATCH (c)-[old:REQUIRES]->(:Service)
             DELETE old
-        """, client_id=record["client_id"]).consume()
+        """, record).consume()
 
         tx.run("""
             MATCH (c:Client {client_id: $client_id})
             UNWIND $services AS service_name
-            WITH c, service_name
-            WHERE service_name IS NOT NULL
             MERGE (s:Service {name: service_name})
             MERGE (c)-[:REQUIRES]->(s)
         """, {
             "client_id": record["client_id"],
-            "services": record["services"] or [None],
+            "services": record["services"],
         }).consume()
