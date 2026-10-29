@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "519506240120",
+    "project_id": "mzazicare-f72ff",
+    "storage_bucket": "mzazicare-f72ff.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:519506240120:android:4815c1ae18a2281557438d",
+        "android_client_info": {
+          "package_name": "com.example.frontend"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "519506240120-5s2ldj217bmngj4dim8m026dmqreg1gb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgVXkCnrU27GG0qtGZPMlJ5CMx47nhNH8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "519506240120-5s2ldj217bmngj4dim8m026dmqreg1gb.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "519506240120-t9dg5cms6pjdh7p9ia7rmhd0qms75m43.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.frontend"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
