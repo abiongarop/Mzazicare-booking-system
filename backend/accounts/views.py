@@ -9,7 +9,7 @@ from recommendations.firebase_authentication import (
 
 from .models import MzaziCareProfile
 from .serializers import MzaziCareProfileSerializer
-
+from rest_framework import status
 
 class MyProfileView(APIView):
     authentication_classes = [FirebaseAuthentication]
@@ -64,3 +64,66 @@ class MyProfileView(APIView):
         serializer.save()
 
         return Response(serializer.data)
+
+class SelectRoleView(APIView):
+    authentication_classes = [FirebaseAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    ALLOWED_ROLES = {"client", "caregiver"}
+
+    def post(self, request):
+        # Validate the requested role.
+        role = request.data.get("role")
+
+        if role not in self.ALLOWED_ROLES:
+            return Response(
+                {
+                    "error": (
+                        "Invalid role. Choose client or caregiver."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Identify the signed-in Firebase user.
+        firebase_uid = getattr(request.user, "uid", None)
+
+        if not firebase_uid:
+            return Response(
+                {"error": "Could not identify the Firebase user."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        # The profile should normally already exist because the
+        # sign-in flow calls GET /api/profile/me/.
+        profile = MzaziCareProfile.objects.filter(
+            firebase_uid=firebase_uid
+        ).first()
+
+        if profile is None:
+            return Response(
+                {
+                    "error": (
+                        "Profile not found. Retrieve your profile "
+                        "before selecting a role."
+                    )
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Save the selected role.
+        profile.role = role
+        profile.save(update_fields=["role", "updated_at"])
+
+        return Response(
+            {
+                "message": "Role saved successfully.",
+                "profile": {
+                    "firebase_uid": profile.firebase_uid,
+                    "email": profile.email,
+                    "full_name": profile.full_name,
+                    "role": profile.role,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )

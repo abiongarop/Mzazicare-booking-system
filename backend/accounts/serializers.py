@@ -1,5 +1,6 @@
 
 from rest_framework import serializers
+
 from .models import MzaziCareProfile
 
 
@@ -22,17 +23,8 @@ class MzaziCareProfileSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "firebase_uid",
             "email",
-            "full_name",
+            "role",
             "is_verified",
             "created_at",
             "updated_at",
         ]
-
-    def validate_role(self, value):
-        if value not in ("client", "caregiver"):
-            raise serializers.ValidationError(
-                "Public profiles can only use the client "
-                "or caregiver role."
-            )
-
-        return value

@@ -5,6 +5,7 @@ from .views import (
     recommendation_health,
     recommendation_status,
     graph_candidates,
+    family_recommendations,
 )
 
 urlpatterns = [
@@ -15,4 +16,7 @@ urlpatterns = [
         graph_candidates,
         name="graph-candidates",
     ),
+    path("family/", family_recommendations, name="family-recommendations"),
 ]
+
+

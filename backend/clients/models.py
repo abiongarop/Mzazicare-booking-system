@@ -1,3 +1,4 @@
+
 from django.db import models
 
 from accounts.models import MzaziCareProfile
@@ -5,6 +6,14 @@ from caregivers.models import Location, Service, Skill
 
 
 class Client(models.Model):
+    account = models.OneToOneField(
+        MzaziCareProfile,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="client_record",
+    )
+
     client_id = models.CharField(max_length=20, unique=True)
     age = models.PositiveIntegerField()
     gender = models.CharField(max_length=30, blank=True)

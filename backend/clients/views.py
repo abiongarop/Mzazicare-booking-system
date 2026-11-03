@@ -1,3 +1,4 @@
+
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
@@ -5,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import MzaziCareProfile
+from accounts.permissions import IsAdministrator, IsFamilyMember
 from recommendations.firebase_authentication import FirebaseAuthentication
 
 from .models import Client, FamilyCareProfile
@@ -12,53 +14,45 @@ from .serializers import ClientSerializer, FamilyCareProfileSerializer
 
 
 class ClientViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Client records are restricted to administrators.
+    Family members should use their own family-care profile endpoint.
+    """
     queryset = Client.objects.select_related(
         "location"
     ).prefetch_related("required_services")
 
     serializer_class = ClientSerializer
+    authentication_classes = [FirebaseAuthentication]
+    permission_classes = [IsAuthenticated, IsAdministrator]
 
 
 class FamilyCareProfileView(APIView):
     authentication_classes = [FirebaseAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsFamilyMember]
 
     def get_family_profile(self, request):
         user = request.user
 
-        account, _ = MzaziCareProfile.objects.get_or_create(
-            firebase_uid=user.uid,
-            defaults={
-                "email": user.email or "",
-                "full_name": user.name or "",
-                "role": "client",
-            },
-        )
+        account = MzaziCareProfile.objects.filter(
+            firebase_uid=user.uid
+        ).first()
 
-        # Keep basic account information up to date.
-        updates = []
-
-        if user.email and account.email != user.email:
-            account.email = user.email
-            updates.append("email")
-
-        if user.name and account.full_name != user.name:
-            account.full_name = user.name
-            updates.append("full_name")
-
-        if updates:
-            account.save(update_fields=updates)
+        if account is None:
+            raise PermissionDenied(
+                "Create your family account before accessing this profile."
+            )
 
         if account.role != "client":
             raise PermissionDenied(
-                "This endpoint is only available to family/client accounts."
+                "Only family members can access this profile."
             )
 
-        family_profile, _ = FamilyCareProfile.objects.get_or_create(
+        profile, _ = FamilyCareProfile.objects.get_or_create(
             account=account,
         )
 
-        return family_profile
+        return profile
 
     def get(self, request):
         profile = self.get_family_profile(request)

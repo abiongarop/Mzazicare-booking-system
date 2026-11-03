@@ -26,4 +26,10 @@ urlpatterns = [
     name="firebase-auth-check",
 ),
     path("api/profile/", include("accounts.urls")),
+    path("api/auth/", include("accounts.auth_urls")),
+
+#care coordination urls
+    path("api/", include("care_coordination.urls")),
+
+    path("api/admin/", include("admin_portal.urls")),
 ]

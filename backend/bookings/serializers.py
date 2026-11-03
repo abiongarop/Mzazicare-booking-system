@@ -35,12 +35,10 @@ class BookingSerializer(serializers.ModelSerializer):
 
         if start and end and end <= start:
             raise serializers.ValidationError({
-                "scheduled_end": (
-                    "The end time must be after the start time."
-                )
+                "scheduled_end": "The end time must be after the start time."
             })
 
-        if start and caregiver:
+        if start and end and caregiver:
             conflicts = Booking.objects.filter(
                 caregiver=caregiver,
                 scheduled_start__lt=end,
