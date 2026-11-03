@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+
 import '../services/api_service.dart';
+import '../recommendations/recommendations_screen.dart';
 
 class FamilyProfileScreen extends StatefulWidget {
   const FamilyProfileScreen({super.key});
 
   @override
-  State<FamilyProfileScreen> createState() =>
-      _FamilyProfileScreenState();
+  State<FamilyProfileScreen> createState() => _FamilyProfileScreenState();
 }
 
 class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
@@ -34,6 +35,8 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
     'Personal hygiene',
   ];
 
+  static const _primary = Color(0xFF16877A);
+
   final Set<String> _selectedServices = {};
   final Set<String> _selectedSkills = {};
 
@@ -43,8 +46,6 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
 
   bool _loading = true;
   bool _saving = false;
-
-  static const _primary = Color(0xFF16877A);
 
   @override
   void initState() {
@@ -61,16 +62,32 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
     super.dispose();
   }
 
+  String? _nullableString(dynamic value) {
+    if (value == null || value.toString().trim().isEmpty) {
+      return null;
+    }
+    return value.toString();
+  }
+
+  List<String> _readNames(dynamic value) {
+    if (value is! List) return [];
+
+    return value.map((item) {
+      if (item is Map) {
+        return (item['name'] ?? '').toString();
+      }
+      return item.toString();
+    }).where((name) => name.trim().isNotEmpty).toList();
+  }
+
   Future<void> _loadProfile() async {
     try {
       final data = await ApiService.getFamilyCareProfile();
 
       if (!mounted) return;
 
-      _phoneController.text =
-          (data['contact_phone'] ?? '').toString();
-      _locationController.text =
-          (data['location'] ?? '').toString();
+      _phoneController.text = (data['contact_phone'] ?? '').toString();
+      _locationController.text = (data['location'] ?? '').toString();
       _ageController.text =
           data['care_recipient_age']?.toString() ?? '';
       _notesController.text = (data['notes'] ?? '').toString();
@@ -79,24 +96,24 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
       _careLevel = _nullableString(data['care_level']);
       _arrangement = _nullableString(data['care_arrangement']);
 
-      _selectedServices.addAll(
-        List<String>.from(data['required_services'] ?? []),
-      );
-      _selectedSkills.addAll(
-        List<String>.from(data['required_skills'] ?? []),
-      );
+      _selectedServices
+        ..clear()
+        ..addAll(_readNames(data['required_services']));
+
+      _selectedSkills
+        ..clear()
+        ..addAll(_readNames(data['required_skills']));
 
       setState(() {});
     } catch (e) {
-      if (mounted) _showMessage('Could not load profile: $e');
+      if (mounted) {
+        _showMessage('Could not load profile: $e');
+      }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
-  }
-
-  String? _nullableString(dynamic value) {
-    if (value == null || value.toString().isEmpty) return null;
-    return value.toString();
   }
 
   Future<void> _saveProfile() async {
@@ -110,7 +127,7 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
     setState(() => _saving = true);
 
     try {
-      await ApiService.saveFamilyCareProfile({
+      final payload = {
         'contact_phone': _phoneController.text.trim(),
         'location': _locationController.text.trim(),
         'care_recipient_age': int.parse(_ageController.text.trim()),
@@ -120,15 +137,37 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
         'care_level': _careLevel ?? '',
         'care_arrangement': _arrangement ?? '',
         'notes': _notesController.text.trim(),
-      });
+      };
 
-      if (mounted) {
-        _showMessage('Family care profile saved successfully.');
-      }
+      await ApiService.saveFamilyCareProfile(payload);
+
+      if (!mounted) return;
+
+      _showMessage('Profile saved. Updating your recommendations...');
+
+      // Fetch recommendations after saving. This also verifies that
+      // the recommendation endpoint can read the latest profile.
+      await ApiService.getFamilyRecommendations();
+
+      if (!mounted) return;
+
+      // Open the recommendation page with a fresh fetch.
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const RecommendationsScreen(
+            refreshOnOpen: true,
+          ),
+        ),
+      );
     } catch (e) {
-      if (mounted) _showMessage('Could not save profile: $e');
+      if (mounted) {
+        _showMessage('Could not save/update recommendations: $e');
+      }
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (mounted) {
+        setState(() => _saving = false);
+      }
     }
   }
 
@@ -173,20 +212,20 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
           ),
         ),
         validator: (value) {
+          final text = value?.trim() ?? '';
+
           if (label == 'Care recipient age') {
-            final age = int.tryParse(value?.trim() ?? '');
+            final age = int.tryParse(text);
             if (age == null || age < 1 || age > 120) {
               return 'Enter an age between 1 and 120.';
             }
           }
 
-          if (label == 'Location' &&
-              (value == null || value.trim().isEmpty)) {
+          if (label == 'Location' && text.isEmpty) {
             return 'Enter the care location.';
           }
 
-          if (label == 'Contact phone' &&
-              (value == null || value.trim().isEmpty)) {
+          if (label == 'Contact phone' && text.isEmpty) {
             return 'Enter a contact phone number.';
           }
 
@@ -272,9 +311,7 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
                           'Tell us about the care your loved one needs.',
                           style: TextStyle(fontSize: 16),
                         ),
-
                         _sectionTitle('Contact and location'),
-
                         _textField(
                           _phoneController,
                           'Contact phone',
@@ -285,15 +322,12 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
                           'Location',
                           hint: 'e.g. Westlands, Nairobi',
                         ),
-
                         _sectionTitle('Care recipient'),
-
                         _textField(
                           _ageController,
                           'Care recipient age',
                           keyboardType: TextInputType.number,
                         ),
-
                         _dropdown(
                           label: 'Gender',
                           value: _gender,
@@ -311,24 +345,21 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
                               child: Text('Other / Prefer not to say'),
                             ),
                           ],
-                          onChanged: (value) =>
-                              setState(() => _gender = value),
+                          onChanged: (value) {
+                            setState(() => _gender = value);
+                          },
                         ),
-
                         _choiceGroup(
                           'Required care services',
                           _services,
                           _selectedServices,
                         ),
-
                         _choiceGroup(
                           'Required caregiver skills',
                           _skills,
                           _selectedSkills,
                         ),
-
                         _sectionTitle('Care arrangements'),
-
                         _dropdown(
                           label: 'Level of care',
                           value: _careLevel,
@@ -346,10 +377,10 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
                               child: Text('Intensive assistance'),
                             ),
                           ],
-                          onChanged: (value) =>
-                              setState(() => _careLevel = value),
+                          onChanged: (value) {
+                            setState(() => _careLevel = value);
+                          },
                         ),
-
                         _dropdown(
                           label: 'Preferred arrangement',
                           value: _arrangement,
@@ -371,21 +402,18 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
                               child: Text('Live-in'),
                             ),
                           ],
-                          onChanged: (value) =>
-                              setState(() => _arrangement = value),
+                          onChanged: (value) {
+                            setState(() => _arrangement = value);
+                          },
                         ),
-
                         _sectionTitle('Additional information'),
-
                         _textField(
                           _notesController,
                           'Additional notes',
                           maxLines: 4,
                           hint: 'Describe any other care needs...',
                         ),
-
                         const SizedBox(height: 20),
-
                         SizedBox(
                           height: 52,
                           child: ElevatedButton(
@@ -399,7 +427,7 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
                                     color: Colors.white,
                                   )
                                 : const Text(
-                                    'Save Family Profile',
+                                    'Save and Update Recommendations',
                                     style: TextStyle(fontSize: 16),
                                   ),
                           ),
