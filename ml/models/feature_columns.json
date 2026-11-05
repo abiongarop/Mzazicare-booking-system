@@ -1,0 +1,11 @@
+
+[
+  "service_match",
+    "skill_match",
+    "location_match",
+    "availability_match",
+    "experience_years",
+    "experience_match",
+    "rating",
+    "distance_km"
+]

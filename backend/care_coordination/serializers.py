@@ -1,4 +1,3 @@
-
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -16,6 +15,55 @@ class CareScheduleSerializer(serializers.ModelSerializer):
         read_only=True,
         default=None,
     )
+    conversation_id = serializers.IntegerField(
+        read_only=True,
+        allow_null=True,
+    )
+
+    family_profile_id = serializers.IntegerField(
+        source="family_profile.id",
+        read_only=True,
+    )
+    family_name = serializers.CharField(
+        source="family_profile.account.full_name",
+        read_only=True,
+        default="Family",
+    )
+    family_phone = serializers.CharField(
+        source="family_profile.contact_phone",
+        read_only=True,
+        default="",
+    )
+    family_email = serializers.EmailField(
+        source="family_profile.account.email",
+        read_only=True,
+        default="",
+    )
+    family_location = serializers.CharField(
+        source="family_profile.location",
+        read_only=True,
+        default="",
+    )
+    care_recipient_age = serializers.IntegerField(
+        source="family_profile.care_recipient_age",
+        read_only=True,
+        allow_null=True,
+    )
+    care_recipient_gender = serializers.CharField(
+        source="family_profile.care_recipient_gender",
+        read_only=True,
+        default="",
+    )
+    care_level = serializers.CharField(
+        source="family_profile.care_level",
+        read_only=True,
+        default="",
+    )
+    care_arrangement = serializers.CharField(
+        source="family_profile.care_arrangement",
+        read_only=True,
+        default="",
+    )
 
     class Meta:
         model = CareSchedule
@@ -24,6 +72,16 @@ class CareScheduleSerializer(serializers.ModelSerializer):
             "caregiver",
             "caregiver_id",
             "caregiver_rating",
+            "conversation_id",
+            "family_profile_id",
+            "family_name",
+            "family_phone",
+            "family_email",
+            "family_location",
+            "care_recipient_age",
+            "care_recipient_gender",
+            "care_level",
+            "care_arrangement",
             "scheduled_start",
             "scheduled_end",
             "arrangement",
@@ -34,9 +92,20 @@ class CareScheduleSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
         read_only_fields = [
             "id",
             "status",
+            "conversation_id",
+            "family_profile_id",
+            "family_name",
+            "family_phone",
+            "family_email",
+            "family_location",
+            "care_recipient_age",
+            "care_recipient_gender",
+            "care_level",
+            "care_arrangement",
             "cancellation_reason",
             "created_at",
             "updated_at",
@@ -53,15 +122,22 @@ class CareScheduleSerializer(serializers.ModelSerializer):
         )
 
         if start and end and end <= start:
-            raise serializers.ValidationError(
-                {"scheduled_end": "The end must be after the start."}
-            )
-
-        if start and start <= timezone.now():
-            if self.instance is None:
-                raise serializers.ValidationError(
-                    {"scheduled_start": "Choose a future date and time."}
+            raise serializers.ValidationError({
+                "scheduled_end": (
+                    "End time must be later than the start time."
                 )
+            })
+
+        if (
+            start
+            and not self.instance
+            and start <= timezone.now()
+        ):
+            raise serializers.ValidationError({
+                "scheduled_start": (
+                    "Choose a future date and time."
+                )
+            })
 
         return attrs
 
@@ -70,6 +146,20 @@ class ConversationSerializer(serializers.ModelSerializer):
     caregiver_id = serializers.CharField(
         source="caregiver.caregiver_id",
         read_only=True,
+    )
+    family_profile_id = serializers.IntegerField(
+        source="family_profile.id",
+        read_only=True,
+    )
+    family_name = serializers.CharField(
+        source="family_profile.account.full_name",
+        read_only=True,
+        default="Family",
+    )
+    caregiver_name = serializers.CharField(
+        source="caregiver.account.full_name",
+        read_only=True,
+        default="Caregiver",
     )
     messages_count = serializers.IntegerField(
         source="messages.count",
@@ -80,8 +170,11 @@ class ConversationSerializer(serializers.ModelSerializer):
         model = Conversation
         fields = [
             "id",
+            "family_profile_id",
+            "family_name",
             "caregiver",
             "caregiver_id",
+            "caregiver_name",
             "created_at",
             "updated_at",
             "messages_count",

@@ -1,4 +1,3 @@
-
 from django.conf import settings
 from django.db import models
 
@@ -7,6 +6,7 @@ class CareSchedule(models.Model):
     STATUS_CHOICES = [
         ("pending", "Pending"),
         ("confirmed", "Confirmed"),
+        ("declined", "Declined"),
         ("in_progress", "In progress"),
         ("completed", "Completed"),
         ("cancelled", "Cancelled"),
@@ -25,6 +25,13 @@ class CareSchedule(models.Model):
     caregiver = models.ForeignKey(
         "caregivers.Caregiver",
         on_delete=models.PROTECT,
+        related_name="care_schedules",
+        null=True,
+        blank=True,
+    )
+    conversation = models.ForeignKey(
+        "Conversation",
+        on_delete=models.SET_NULL,
         related_name="care_schedules",
         null=True,
         blank=True,

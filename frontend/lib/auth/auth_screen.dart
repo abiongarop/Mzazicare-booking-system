@@ -1,15 +1,21 @@
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
-import '../onboarding/role_selection_screen.dart';
-import '../onboarding/family_profile_screen.dart';
-import '../onboarding/caregiver_profile_screen.dart';
+import '../dashboards/family_dashboard_screen.dart';
+import '../dashboards/caregiver_dashboard_screen.dart';
+import '../admin/admin_dashboard_screen.dart';
 
 enum AuthMode { signIn, register }
 
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key});
+  final String? initialRole;
+
+  const AuthScreen({
+    super.key,
+    this.initialRole,
+  });
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -27,11 +33,30 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _obscureConfirmPassword = true;
   String? _errorMessage;
 
-  static const Color _primary = Color(0xFF176B57);
-  static const Color _primaryDark = Color(0xFF104C40);
-  static const Color _background = Color(0xFFF5F8F6);
+  static const Color _primary = Color(0xFFC8758D);
+  static const Color _primaryDark = Color(0xFFA95570);
+  static const Color _background = Color(0xFFFFF6F5);
+  static const Color _navy = Color(0xFF593847);
+  static const Color _muted = Color(0xFF745C67);
+  static const Color _border = Color(0xFFF0DDE3);
 
   bool get _isRegistering => _mode == AuthMode.register;
+
+  String? get _selectedRole {
+    final value = widget.initialRole?.trim().toLowerCase();
+
+    if (value == 'client' || value == 'caregiver') {
+      return value;
+    }
+
+    return null;
+  }
+
+  String get _roleLabel {
+    return _selectedRole == 'caregiver'
+        ? 'Caregiver'
+        : 'Family Member';
+  }
 
   @override
   void dispose() {
@@ -62,34 +87,89 @@ class _AuthScreenState extends State<AuthScreen> {
       throw Exception('Firebase did not return a signed-in user.');
     }
 
-    debugPrint('Firebase sign-in successful: ${user.email}');
+    debugPrint('Firebase authentication successful: ${user.email}');
 
-    // Verify that Django accepts the Firebase ID token.
-    final authResult = await ApiService.checkAuthentication();
-    debugPrint('Django authentication successful: $authResult');
+    // 1. Verify Firebase authentication with Django.
+    await ApiService.checkAuthentication();
 
-    // Retrieve the authenticated user's MzaziCare profile.
-    final profile = await ApiService.getMyProfile();
-    debugPrint('MzaziCare profile retrieved successfully.');
+    // 2. Retrieve the MzaziCare profile.
+    var profile = await ApiService.getMyProfile();
+
+    debugPrint('Retrieved profile: $profile');
+
+    String? role = profile['role']?.toString().trim().toLowerCase();
+
+    // 3. Assign the landing-page role to newly registered accounts.
+    if (isNewUser) {
+      final selectedRole = _selectedRole;
+
+      if (selectedRole == null) {
+        throw Exception(
+          'No account type was selected. Please return to the '
+          'landing page and choose Find a Caregiver or '
+          'Become a Caregiver.',
+        );
+      }
+
+      debugPrint('Assigning new account role: $selectedRole');
+
+      final response = await ApiService.selectRole(
+        role: selectedRole,
+      );
+
+      debugPrint('Role assignment response: $response');
+
+      // 4. Fetch the profile again to confirm the saved role.
+      profile = await ApiService.getMyProfile();
+
+      role = profile['role']?.toString().trim().toLowerCase();
+
+      if (role != selectedRole) {
+        throw Exception(
+          'Role assignment was not confirmed. '
+          'Expected $selectedRole but received $role.',
+        );
+      }
+    }
+
+    // 5. Validate the role.
+    if (role == null || role.isEmpty) {
+      throw Exception(
+        'Your account role could not be determined. '
+        'Please contact support.',
+      );
+    }
+
+    debugPrint('Final MzaziCare role: $role');
+
+    // 6. Navigate directly to the correct dashboard.
+    late final Widget destination;
+
+    switch (role) {
+      case 'admin':
+        destination = const AdminDashboardScreen();
+        break;
+
+      case 'client':
+        destination = const FamilyDashboardScreen();
+        break;
+
+      case 'caregiver':
+        destination = const CaregiverDashboardScreen();
+        break;
+
+      default:
+        throw Exception('Unrecognised account role: $role.');
+    }
 
     if (!mounted) return;
 
-    final role = profile['role']?.toString().toLowerCase();
-
-    Widget destination;
-
-    if (isNewUser || (role != 'client' && role != 'caregiver')) {
-      destination = const RoleSelectionScreen();
-    } else if (role == 'client') {
-      // Existing family member: continue to family onboarding/profile.
-      destination = const FamilyProfileScreen();
-    } else {
-      // Existing caregiver: continue to caregiver onboarding/profile.
-      destination = const CaregiverProfileScreen();
-    }
-
-    Navigator.of(context)
-        .pushReplacement(MaterialPageRoute<void>(builder: (_) => destination));
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(
+        builder: (_) => destination,
+      ),
+      (route) => false,
+    );
   }
 
   Future<void> _signInWithGoogle() async {
@@ -105,9 +185,13 @@ class _AuthScreenState extends State<AuthScreen> {
         GoogleAuthProvider(),
       );
 
-      final isNewUser = credential.additionalUserInfo?.isNewUser ?? false;
+      final isNewUser =
+          credential.additionalUserInfo?.isNewUser ?? false;
 
-      await _authenticate(credential, isNewUser: isNewUser);
+      await _authenticate(
+        credential,
+        isNewUser: isNewUser,
+      );
     } on FirebaseAuthException catch (e) {
       _showError(_firebaseError(e));
     } catch (e, stackTrace) {
@@ -138,14 +222,19 @@ class _AuthScreenState extends State<AuthScreen> {
       bool isNewUser = false;
 
       if (_isRegistering) {
+        if (_selectedRole == null) {
+          throw Exception(
+            'Please return to the landing page and select '
+            'your account type before registering.',
+          );
+        }
+
         credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: email,
           password: password,
         );
-        isNewUser = true;
 
-        // Set a display name only if one is already available.
-        // Users can update their full name in their profile later.
+        isNewUser = true;
       } else {
         credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: email,
@@ -153,7 +242,10 @@ class _AuthScreenState extends State<AuthScreen> {
         );
       }
 
-      await _authenticate(credential, isNewUser: isNewUser);
+      await _authenticate(
+        credential,
+        isNewUser: isNewUser,
+      );
     } on FirebaseAuthException catch (e) {
       _showError(_firebaseError(e));
     } catch (e, stackTrace) {
@@ -254,7 +346,10 @@ class _AuthScreenState extends State<AuthScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 28),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 22,
+              vertical: 28,
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 460),
               child: Column(
@@ -267,7 +362,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   const Text(
                     'Your loved ones deserve compassionate care.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Color(0xFF66736D), fontSize: 13),
+                    style: TextStyle(color: _muted, fontSize: 13),
                   ),
                 ],
               ),
@@ -314,11 +409,11 @@ class _AuthScreenState extends State<AuthScreen> {
         const SizedBox(height: 8),
         Text(
           _isRegistering
-              ? 'Create your account and get started.'
+              ? 'Create your $_roleLabel account.'
               : 'Trusted care. Peace of mind. Closer connections.',
           textAlign: TextAlign.center,
           style: const TextStyle(
-            color: Color(0xFF66736D),
+            color: _muted,
             height: 1.5,
             fontSize: 14,
           ),
@@ -333,10 +428,10 @@ class _AuthScreenState extends State<AuthScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE6ECE8)),
+        border: Border.all(color: _border),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF183C2F).withValues(alpha: 0.06),
+            color: const Color(0xFF593847).withValues(alpha: 0.06),
             blurRadius: 28,
             offset: const Offset(0, 10),
           ),
@@ -350,22 +445,22 @@ class _AuthScreenState extends State<AuthScreen> {
             style: const TextStyle(
               fontSize: 23,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF20352C),
+              color: _navy,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             _isRegistering
-                ? 'Join the MzaziCare community.'
+                ? 'Join the MzaziCare community as a $_roleLabel.'
                 : 'Sign in to continue to your account.',
-            style: const TextStyle(color: Color(0xFF75817B), fontSize: 13),
+            style: const TextStyle(color: _muted, fontSize: 13),
           ),
           const SizedBox(height: 22),
           _buildGoogleButton(),
           const SizedBox(height: 22),
           Row(
             children: [
-              const Expanded(child: Divider(color: Color(0xFFE1E8E3))),
+              const Expanded(child: Divider(color: _border)),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text(
@@ -378,7 +473,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                 ),
               ),
-              const Expanded(child: Divider(color: Color(0xFFE1E8E3))),
+              const Expanded(child: Divider(color: _border)),
             ],
           ),
           const SizedBox(height: 20),
@@ -419,7 +514,8 @@ class _AuthScreenState extends State<AuthScreen> {
                     onPressed: _isLoading ? null : _submitEmailForm,
                     style: FilledButton.styleFrom(
                       backgroundColor: _primary,
-                      disabledBackgroundColor: _primary.withValues(alpha: 0.55),
+                      disabledBackgroundColor:
+                          _primary.withValues(alpha: 0.55),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
@@ -455,7 +551,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       ? 'Already have an account?'
                       : "Don't have an account?",
                   style: const TextStyle(
-                    color: Color(0xFF69766F),
+                    color: _muted,
                     fontSize: 13,
                   ),
                 ),
@@ -464,8 +560,10 @@ class _AuthScreenState extends State<AuthScreen> {
                 onPressed: _isLoading
                     ? null
                     : () => _setMode(
-                        _isRegistering ? AuthMode.signIn : AuthMode.register,
-                      ),
+                          _isRegistering
+                              ? AuthMode.signIn
+                              : AuthMode.register,
+                        ),
                 child: Text(
                   _isRegistering ? 'Sign in' : 'Register',
                   style: const TextStyle(
@@ -488,8 +586,8 @@ class _AuthScreenState extends State<AuthScreen> {
       child: OutlinedButton(
         onPressed: _isLoading ? null : _signInWithGoogle,
         style: OutlinedButton.styleFrom(
-          foregroundColor: const Color(0xFF26352D),
-          side: const BorderSide(color: Color(0xFFDCE5DF)),
+          foregroundColor: _navy,
+          side: const BorderSide(color: _border),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -539,10 +637,13 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
       validator: (value) {
         final email = value?.trim() ?? '';
+
         if (email.isEmpty) return 'Email address is required.';
+
         if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
           return 'Enter a valid email address.';
         }
+
         return null;
       },
     );
@@ -553,14 +654,15 @@ class _AuthScreenState extends State<AuthScreen> {
       controller: _passwordController,
       enabled: !_isLoading,
       obscureText: _obscurePassword,
-      textInputAction: _isRegistering
-          ? TextInputAction.next
-          : TextInputAction.done,
+      textInputAction:
+          _isRegistering ? TextInputAction.next : TextInputAction.done,
       autofillHints: _isRegistering
           ? const [AutofillHints.newPassword]
           : const [AutofillHints.password],
       onFieldSubmitted: (_) {
-        if (!_isRegistering && !_isLoading) _submitEmailForm();
+        if (!_isRegistering && !_isLoading) {
+          _submitEmailForm();
+        }
       },
       decoration: _inputDecoration(
         label: 'Password',
@@ -575,16 +677,19 @@ class _AuthScreenState extends State<AuthScreen> {
             _obscurePassword
                 ? Icons.visibility_outlined
                 : Icons.visibility_off_outlined,
-            color: Colors.grey.shade600,
+            color: _muted,
           ),
         ),
       ),
       validator: (value) {
         final password = value ?? '';
+
         if (password.isEmpty) return 'Password is required.';
+
         if (_isRegistering && password.length < 6) {
           return 'Use at least 6 characters.';
         }
+
         return null;
       },
     );
@@ -601,7 +706,9 @@ class _AuthScreenState extends State<AuthScreen> {
         hint: 'Re-enter your password',
         icon: Icons.lock_reset_rounded,
         suffix: IconButton(
-          tooltip: _obscureConfirmPassword ? 'Show password' : 'Hide password',
+          tooltip: _obscureConfirmPassword
+              ? 'Show password'
+              : 'Hide password',
           onPressed: () {
             setState(() {
               _obscureConfirmPassword = !_obscureConfirmPassword;
@@ -611,7 +718,7 @@ class _AuthScreenState extends State<AuthScreen> {
             _obscureConfirmPassword
                 ? Icons.visibility_outlined
                 : Icons.visibility_off_outlined,
-            color: Colors.grey.shade600,
+            color: _muted,
           ),
         ),
       ),
@@ -619,9 +726,11 @@ class _AuthScreenState extends State<AuthScreen> {
         if (value == null || value.isEmpty) {
           return 'Please confirm your password.';
         }
+
         if (value != _passwordController.text) {
           return 'Passwords do not match.';
         }
+
         return null;
       },
     );
@@ -639,15 +748,18 @@ class _AuthScreenState extends State<AuthScreen> {
       prefixIcon: Icon(icon, color: _primary),
       suffixIcon: suffix,
       filled: true,
-      fillColor: const Color(0xFFFAFCFA),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 17),
+      fillColor: const Color(0xFFFFFAFA),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 15,
+        vertical: 17,
+      ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
-        borderSide: const BorderSide(color: Color(0xFFDCE5DF)),
+        borderSide: const BorderSide(color: _border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
-        borderSide: const BorderSide(color: Color(0xFFDCE5DF)),
+        borderSide: const BorderSide(color: _border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),

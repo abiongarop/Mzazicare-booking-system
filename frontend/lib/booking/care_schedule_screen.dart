@@ -1,8 +1,8 @@
-
 import 'package:flutter/material.dart';
 
 import '../recommendations/recommendations_screen.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
 
 class CareScheduleScreen extends StatefulWidget {
   const CareScheduleScreen({super.key});
@@ -16,68 +16,63 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
   String? _error;
   List<Map<String, dynamic>> _schedules = [];
 
-  static const Color _darkGreen = Color(0xFF174D38);
-  static const Color _lightGreen = Color(0xFFE5F2E9);
-
   @override
   void initState() {
     super.initState();
     _loadSchedules();
   }
 
-  
-Future<void> _loadSchedules() async {
-  if (mounted) {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-  }
-
-  try {
-    final response = await ApiService.getCareSchedules();
-
-    // The API service returns a JSON map.
-    final dynamic data =
-        response['results'] ??
-        response['schedules'] ??
-        response['care_schedules'] ??
-        response['data'];
-
-    List<Map<String, dynamic>> schedules = [];
-
-    if (data is List) {
-      schedules = data
-          .whereType<Map<String, dynamic>>()
-          .toList();
+  Future<void> _loadSchedules() async {
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
     }
 
-    if (!mounted) return;
+    try {
+      final response = await ApiService.getCareSchedules();
 
-    setState(() {
-      _schedules = schedules;
-      _isLoading = false;
-    });
-  } catch (e) {
-    if (!mounted) return;
+      final dynamic data = response['results'] ??
+          response['schedules'] ??
+          response['care_schedules'] ??
+          response['data'];
 
-    setState(() {
-      _error = e.toString();
-      _isLoading = false;
-    });
+      List<Map<String, dynamic>> schedules = [];
+
+      if (data is List) {
+        schedules = data
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _schedules = schedules;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
-}
-
 
   Future<void> _findCaregiver() async {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => const RecommendationsScreen(),
+        builder: (_) => const RecommendationsScreen(
+  refreshOnOpen: true,
+),
       ),
     );
 
-    // Refresh after the user returns from recommendations/booking.
     if (mounted) {
       await _loadSchedules();
     }
@@ -90,10 +85,12 @@ Future<void> _loadSchedules() async {
   }) {
     for (final key in keys) {
       final value = schedule[key];
+
       if (value != null && value.toString().trim().isNotEmpty) {
         return value.toString();
       }
     }
+
     return fallback;
   }
 
@@ -103,13 +100,16 @@ Future<void> _loadSchedules() async {
     }
 
     final parsed = DateTime.tryParse(value.toString());
+
     if (parsed == null) return value.toString();
 
     final local = parsed.toLocal();
+
     final date =
         '${local.day.toString().padLeft(2, '0')}/'
         '${local.month.toString().padLeft(2, '0')}/'
         '${local.year}';
+
     final time =
         '${local.hour.toString().padLeft(2, '0')}:'
         '${local.minute.toString().padLeft(2, '0')}';
@@ -127,7 +127,6 @@ Future<void> _loadSchedules() async {
         return Colors.red.shade700;
       case 'in_progress':
       case 'in progress':
-        return Colors.orange.shade800;
       case 'pending':
       default:
         return Colors.orange.shade800;
@@ -154,6 +153,7 @@ Future<void> _loadSchedules() async {
     );
 
     final caregiver = schedule['caregiver'];
+
     String caregiverName = 'Caregiver not assigned';
 
     if (caregiver is Map) {
@@ -161,7 +161,9 @@ Future<void> _loadSchedules() async {
         caregiver['full_name'],
         caregiver['name'],
         caregiver['display_name'],
-      ].where((value) => value != null && value.toString().isNotEmpty)
+      ]
+          .where((value) =>
+              value != null && value.toString().trim().isNotEmpty)
           .join(' ');
 
       if (caregiverName.trim().isEmpty) {
@@ -180,65 +182,66 @@ Future<void> _loadSchedules() async {
     );
 
     final services = schedule['services'];
+
     final serviceText = services is List
         ? services.map((item) {
             if (item is Map) {
-              return (item['name'] ?? item['service_name'] ?? item['id'])
+              return (item['name'] ??
+                      item['service_name'] ??
+                      item['id'])
                   .toString();
             }
+
             return item.toString();
           }).join(', ')
         : '';
 
+    final notes = schedule['family_notes'];
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: Color(0xFFE3EBE6)),
-      ),
+      margin: const EdgeInsets.only(bottom: 13),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const CircleAvatar(
-                  backgroundColor: _lightGreen,
-                  child: Icon(
+                Container(
+                  height: 48,
+                  width: 48,
+                  decoration: BoxDecoration(
+                    color: MzaziCareColors.surfaceSoft,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
                     Icons.calendar_month_outlined,
-                    color: _darkGreen,
+                    color: MzaziCareColors.primaryDark,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 13),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         caregiverName,
-                        style: const TextStyle(
-                          color: _darkGreen,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      const SizedBox(height: 5),
+                      const SizedBox(height: 6),
                       Text(
                         _formatDateTime(start),
                         style: const TextStyle(
-                          color: Colors.black87,
+                          color: MzaziCareColors.text,
                         ),
                       ),
                       if (end.isNotEmpty) ...[
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 4),
                         Text(
                           'Ends: ${_formatDateTime(end)}',
                           style: const TextStyle(
-                            color: Colors.black54,
+                            color: MzaziCareColors.textMuted,
                             fontSize: 13,
                           ),
                         ),
@@ -247,46 +250,220 @@ Future<void> _loadSchedules() async {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _statusColor(status).withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    status.replaceAll('_', ' ').toUpperCase(),
-                    style: TextStyle(
-                      color: _statusColor(status),
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10,
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _statusColor(status)
+                          .withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      status.replaceAll('_', ' ').toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: _statusColor(status),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
-            Text(
-              'Arrangement: ${arrangement.replaceAll('_', ' ')}',
-              style: const TextStyle(color: Colors.black87),
+            const Divider(height: 26),
+            _detailRow(
+              Icons.repeat_rounded,
+              'Arrangement',
+              arrangement.replaceAll('_', ' '),
             ),
-            if (serviceText.isNotEmpty) ...[
-              const SizedBox(height: 5),
-              Text(
-                'Services: $serviceText',
-                style: const TextStyle(color: Colors.black54),
+            if (serviceText.isNotEmpty)
+              _detailRow(
+                Icons.medical_services_outlined,
+                'Services',
+                serviceText,
               ),
-            ],
-            if (schedule['family_notes'] != null &&
-                schedule['family_notes'].toString().trim().isNotEmpty) ...[
-              const SizedBox(height: 5),
-              Text(
-                'Notes: ${schedule['family_notes']}',
-                style: const TextStyle(color: Colors.black54),
+            if (notes != null && notes.toString().trim().isNotEmpty)
+              _detailRow(
+                Icons.notes_rounded,
+                'Notes',
+                notes.toString(),
               ),
-            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _detailRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icon,
+            size: 18,
+            color: MzaziCareColors.primaryDark,
+          ),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 105,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: MzaziCareColors.text,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: MzaziCareColors.textMuted,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _headerCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(23),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            MzaziCareColors.primaryDark,
+            MzaziCareColors.primary,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.health_and_safety_outlined,
+            color: Colors.white,
+            size: 34,
+          ),
+          const SizedBox(height: 13),
+          const Text(
+            'Coordinate care with confidence',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 21,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Review your scheduled visits or find a caregiver who matches your family’s needs.',
+            style: TextStyle(
+              color: Colors.white,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _findCaregiver,
+              icon: const Icon(Icons.search),
+              label: const Text('Find a caregiver'),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: MzaziCareColors.primaryDark,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyBookings() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(25),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.event_available_outlined,
+              size: 44,
+              color: MzaziCareColors.primaryDark,
+            ),
+            const SizedBox(height: 13),
+            Text(
+              'No bookings yet',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 7),
+            const Text(
+              'Find a caregiver to arrange your first care visit.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: MzaziCareColors.textMuted,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 14),
+            OutlinedButton(
+              onPressed: _findCaregiver,
+              child: const Text('Find a caregiver'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _errorView() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.cloud_off_outlined,
+              size: 40,
+              color: MzaziCareColors.primaryDark,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'We could not load your bookings.',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: MzaziCareColors.text,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _error ?? '',
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: MzaziCareColors.textMuted,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _loadSchedules,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Try again'),
+            ),
           ],
         ),
       ),
@@ -296,15 +473,13 @@ Future<void> _loadSchedules() async {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7FAF8),
+      backgroundColor: MzaziCareColors.background,
       appBar: AppBar(
         title: const Text('Your care schedule'),
-        backgroundColor: _darkGreen,
-        foregroundColor: Colors.white,
         actions: [
           IconButton(
             tooltip: 'Refresh schedules',
-            onPressed: _loadSchedules,
+            onPressed: _isLoading ? null : _loadSchedules,
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -312,153 +487,35 @@ Future<void> _loadSchedules() async {
       body: RefreshIndicator(
         onRefresh: _loadSchedules,
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: _darkGreen,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.health_and_safety_outlined,
-                    color: Colors.white,
-                    size: 32,
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    'Coordinate care with confidence',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Review your scheduled visits or find a caregiver '
-                    'who matches your family’s needs.',
-                    style: TextStyle(
-                      color: Color(0xFFE0F0E7),
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: _findCaregiver,
-                      icon: const Icon(Icons.search),
-                      label: const Text('Find a caregiver'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: _lightGreen,
-                        foregroundColor: _darkGreen,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            _headerCard(),
+            const SizedBox(height: 26),
+            const MzaziSectionHeader(
+              title: 'Your bookings',
+              subtitle: 'View the status and details of your care visits.',
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'Your bookings',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: _darkGreen,
-              ),
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             if (_isLoading)
               const Padding(
                 padding: EdgeInsets.all(32),
-                child: Center(child: CircularProgressIndicator()),
+                child: Center(
+                  child: CircularProgressIndicator(),
+                ),
               )
             else if (_error != null)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE3EBE6)),
-                ),
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.cloud_off_outlined,
-                      size: 38,
-                      color: Colors.orange,
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'We could not load your bookings.',
-                      style: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _error!,
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.black54,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: _loadSchedules,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Try again'),
-                    ),
-                  ],
-                ),
-              )
+              _errorView()
             else if (_schedules.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE3EBE6)),
-                ),
-                child: const Column(
-                  children: [
-                    Icon(
-                      Icons.event_available_outlined,
-                      size: 42,
-                      color: _darkGreen,
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      'No bookings yet',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      'Find a caregiver to arrange your first care visit.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.black54,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              )
+              _emptyBookings()
             else ...[
               Text(
                 '${_schedules.length} booking${_schedules.length == 1 ? '' : 's'}',
-                style: const TextStyle(color: Colors.black54),
+                style: const TextStyle(
+                  color: MzaziCareColors.textMuted,
+                ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               ..._schedules.map(_buildScheduleCard),
             ],
           ],

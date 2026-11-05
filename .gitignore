@@ -7,8 +7,7 @@ __pycache__/
 venv/
 env/
 
-# Environment variables
-.env
+
 
 # IDE
 .vscode/
@@ -22,3 +21,17 @@ env/
 # OS
 .DS_Store
 Thumbs.dbgit init
+
+backend/secrets/
+
+# Firebase credentials
+backend/secrets/
+**/firebase-service-account.json
+
+# Python environment
+.venv/
+__pycache__/
+*.pyc
+
+# Environment variables
+.env

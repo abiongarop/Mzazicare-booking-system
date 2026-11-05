@@ -1,16 +1,17 @@
-
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
-import 'family_profile_screen.dart';
+
+import '../dashboards/family_dashboard_screen.dart';
+
+
 import 'caregiver_profile_screen.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
   const RoleSelectionScreen({super.key});
 
   @override
-  State<RoleSelectionScreen> createState() =>
-      _RoleSelectionScreenState();
+  State<RoleSelectionScreen> createState() => _RoleSelectionScreenState();
 }
 
 class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
@@ -30,25 +31,27 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     setState(() => isLoading = true);
 
     try {
-      await ApiService.updateMyProfile(role: selectedRole!);
+      final result = await ApiService.selectRole(role: selectedRole!);
+
+      debugPrint('Role saved successfully: $result');
 
       if (!mounted) return;
 
       if (selectedRole == 'client') {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const FamilyProfileScreen(),
-          ),
-        );
-      } else {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const CaregiverProfileScreen(),
-          ),
-        );
-      }
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute<void>(
+      builder: (_) => const FamilyDashboardScreen(),
+    ),
+  );
+} else {
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute<void>(
+      builder: (_) => const CaregiverProfileScreen(),
+    ),
+  );
+}
     } catch (e) {
       if (!mounted) return;
 
@@ -117,8 +120,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                 _buildRoleCard(
                   role: 'caregiver',
                   title: 'Caregiver',
-                  description:
-                      'Create a professional profile and offer home-care services.',
+                  description: 'Create a professional profile and offer home-care services.',
                   icon: Icons.volunteer_activism,
                 ),
 
@@ -135,9 +137,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                     ),
                   ),
                   child: isLoading
-                      ? const CircularProgressIndicator(
-                          color: Colors.white,
-                        )
+                      ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
                           'Continue',
                           style: TextStyle(
@@ -164,15 +164,11 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
 
     return Card(
       elevation: isSelected ? 3 : 1,
-      color: isSelected
-          ? const Color(0xFFE5F4F0)
-          : Colors.white,
+      color: isSelected ? const Color(0xFFE5F4F0) : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(
-          color: isSelected
-              ? const Color(0xFF16877A)
-              : Colors.grey.shade300,
+          color: isSelected ? const Color(0xFF16877A) : Colors.grey.shade300,
           width: isSelected ? 2 : 1,
         ),
       ),
@@ -183,11 +179,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
           padding: const EdgeInsets.all(20),
           child: Row(
             children: [
-              Icon(
-                icon,
-                size: 38,
-                color: const Color(0xFF16877A),
-              ),
+              Icon(icon, size: 38, color: const Color(0xFF16877A)),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -206,10 +198,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                 ),
               ),
               if (isSelected)
-                const Icon(
-                  Icons.check_circle,
-                  color: Color(0xFF16877A),
-                ),
+                const Icon(Icons.check_circle, color: Color(0xFF16877A)),
             ],
           ),
         ),

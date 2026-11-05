@@ -114,15 +114,163 @@ def _write_family_profile(tx, record):
         ).consume()
 
 
+def sync_caregiver_to_neo4j(caregiver):
+    """
+    Synchronise a Django Caregiver record to Neo4j.
+
+    Django/PostgreSQL remains the source of truth.
+
+    The function:
+    - Creates or updates the Caregiver node.
+    - Synchronises profile attributes and verification status.
+    - Replaces the caregiver's location relationship.
+    - Replaces the caregiver's service relationships.
+    - Replaces the caregiver's skill relationships.
+
+    It is safe to call this function more than once.
+    """
+
+    database = os.getenv("NEO4J_DATABASE", "neo4j")
+    driver = get_neo4j_driver()
+
+    # Read related Django data.
+    location_name = ""
+
+    if caregiver.location:
+        location_name = (
+            getattr(caregiver.location, "name", "") or ""
+        ).strip()
+
+    services = list(
+        caregiver.services.values_list("name", flat=True)
+    )
+
+    skills = list(
+        caregiver.skills.values_list("name", flat=True)
+    )
+
+    record = {
+        "caregiver_id": str(caregiver.caregiver_id).strip(),
+        "age": int(caregiver.age or 0),
+        "gender": caregiver.gender or "",
+        "experience_years": int(caregiver.experience_years or 0),
+        "rating": float(caregiver.rating or 0),
+        "availability": caregiver.availability or "",
+        "is_verified": bool(caregiver.is_verified),
+        "location": location_name,
+        "services": services,
+        "skills": skills,
+    }
+
+    if not record["caregiver_id"]:
+        raise ValueError("Caregiver must have a valid caregiver_id.")
+
+    try:
+        driver.verify_connectivity()
+
+        with driver.session(database=database) as session:
+            session.execute_write(_write_caregiver, record)
+
+    finally:
+        driver.close()
+
+
+def _write_caregiver(tx, record):
+    """
+    Write caregiver details and relationships in one transaction.
+    """
+
+    # Create or update the caregiver node.
+    tx.run(
+        """
+        MERGE (c:Caregiver {caregiver_id: $caregiver_id})
+        SET c.age = $age,
+            c.gender = $gender,
+            c.experience_years = $experience_years,
+            c.rating = $rating,
+            c.availability = $availability,
+            c.is_verified = $is_verified
+        """,
+        record,
+    ).consume()
+
+    # Remove the previous location relationship.
+    tx.run(
+        """
+        MATCH (c:Caregiver {caregiver_id: $caregiver_id})
+        OPTIONAL MATCH (c)-[old:LOCATED_IN]->(:Location)
+        DELETE old
+        """,
+        record,
+    ).consume()
+
+    # Add the current location.
+    if record["location"]:
+        tx.run(
+            """
+            MATCH (c:Caregiver {caregiver_id: $caregiver_id})
+            MERGE (l:Location {name: $location})
+            MERGE (c)-[:LOCATED_IN]->(l)
+            """,
+            record,
+        ).consume()
+
+    # Remove previous service relationships.
+    tx.run(
+        """
+        MATCH (c:Caregiver {caregiver_id: $caregiver_id})
+        OPTIONAL MATCH (c)-[old:PROVIDES]->(:Service)
+        DELETE old
+        """,
+        record,
+    ).consume()
+
+    # Add current services.
+    if record["services"]:
+        tx.run(
+            """
+            MATCH (c:Caregiver {caregiver_id: $caregiver_id})
+            UNWIND $services AS service_name
+            MERGE (s:Service {name: service_name})
+            MERGE (c)-[:PROVIDES]->(s)
+            """,
+            record,
+        ).consume()
+
+    # Remove previous skill relationships.
+    tx.run(
+        """
+        MATCH (c:Caregiver {caregiver_id: $caregiver_id})
+        OPTIONAL MATCH (c)-[old:HAS_SKILL]->(:Skill)
+        DELETE old
+        """,
+        record,
+    ).consume()
+
+    # Add current skills.
+    if record["skills"]:
+        tx.run(
+            """
+            MATCH (c:Caregiver {caregiver_id: $caregiver_id})
+            UNWIND $skills AS skill_name
+            MERGE (sk:Skill {name: skill_name})
+            MERGE (c)-[:HAS_SKILL]->(sk)
+            """,
+            record,
+        ).consume()
+
+
 def get_family_profile_candidates(profile_id):
     """
     Retrieve caregiver candidates and family requirements from Neo4j.
 
     The returned dictionaries use the field names expected by
     recommendations.feature_builder.build_candidate_features().
+
     Django is still responsible for verifying caregiver records
     before they are returned to the family.
     """
+
     database = os.getenv("NEO4J_DATABASE", "neo4j")
     driver = get_neo4j_driver()
 
@@ -169,6 +317,7 @@ def get_family_profile_candidates(profile_id):
 
         profile_location AS profile_location,
         p.care_arrangement AS care_arrangement
+
     ORDER BY caregiver_id
     """
 
@@ -193,14 +342,26 @@ def get_family_profile_candidates(profile_id):
                     "caregiver_id": str(caregiver_id),
                     "age": record.get("age"),
                     "gender": record.get("gender"),
-                    "experience_years": record.get("experience_years") or 0,
+                    "experience_years": (
+                        record.get("experience_years") or 0
+                    ),
                     "rating": record.get("rating") or 0,
-                    "availability": record.get("availability") or "",
-                    "is_verified": bool(record.get("is_verified")),
+                    "availability": (
+                        record.get("availability") or ""
+                    ),
+                    "is_verified": bool(
+                        record.get("is_verified")
+                    ),
 
-                    "required_services": record.get("required_services") or [],
-                    "required_skills": record.get("required_skills") or [],
-                    "provided_services": record.get("provided_services") or [],
+                    "required_services": (
+                        record.get("required_services") or []
+                    ),
+                    "required_skills": (
+                        record.get("required_skills") or []
+                    ),
+                    "provided_services": (
+                        record.get("provided_services") or []
+                    ),
                     "skills": record.get("skills") or [],
 
                     "caregiver_locations": (

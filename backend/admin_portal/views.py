@@ -2,6 +2,8 @@
 from django.db import transaction
 from django.utils import timezone
 
+from recommendations.graph_service import sync_caregiver_to_neo4j
+
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -97,6 +99,7 @@ class AdminCaregiverListView(AdminAPIView):
         })
 
 
+
 class AdminCaregiverVerificationView(AdminAPIView):
     def patch(self, request, pk):
         self.get_admin_account(request)
@@ -115,16 +118,33 @@ class AdminCaregiverVerificationView(AdminAPIView):
                 "is_verified": "This field must be true or false."
             })
 
+        # Update PostgreSQL first.
         with transaction.atomic():
             caregiver = Caregiver.objects.select_for_update().get(
                 pk=pk
             )
+
             caregiver.is_verified = value
-            caregiver.save(update_fields=["is_verified", "updated_at"])
+
+            caregiver.save(
+                update_fields=["is_verified", "updated_at"]
+            )
+
+        # Synchronize Neo4j after the PostgreSQL transaction commits.
+        caregiver = (
+            Caregiver.objects
+            .select_related("location")
+            .prefetch_related("skills", "services")
+            .get(pk=pk)
+        )
+
+        sync_caregiver_to_neo4j(caregiver)
 
         return Response(
-            AdminCaregiverSerializer(caregiver).data
+            AdminCaregiverSerializer(caregiver).data,
+            status=status.HTTP_200_OK,
         )
+
 
 
 class AdminFamilyListView(AdminAPIView):

@@ -1,20 +1,18 @@
-
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from .views import CaregiverViewSet, ServiceViewSet
+from .views import CaregiverViewSet, ServiceViewSet, CaregiverProfileView
 
 router = DefaultRouter()
+router.register("caregivers", CaregiverViewSet, basename="caregiver")
+router.register("services", ServiceViewSet, basename="service")
 
-router.register(
-    "caregivers",
-    CaregiverViewSet,
-    basename="caregiver",
-)
+urlpatterns = [
+    path(
+        "caregiver-profile/",
+        CaregiverProfileView.as_view(),
+        name="caregiver-profile",
+    ),
+]
 
-router.register(
-    "services",
-    ServiceViewSet,
-    basename="service",
-)
-
-urlpatterns = router.urls
+urlpatterns += router.urls

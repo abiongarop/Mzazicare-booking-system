@@ -5,6 +5,9 @@ from .models import MzaziCareProfile
 
 
 class MzaziCareProfileSerializer(serializers.ModelSerializer):
+
+    is_verified = serializers.SerializerMethodField()
+
     class Meta:
         model = MzaziCareProfile
 
@@ -28,3 +31,21 @@ class MzaziCareProfileSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def get_is_verified(self, obj):
+
+        # For caregiver accounts, use the actual caregiver record.
+        if obj.role == "caregiver":
+            caregiver = getattr(
+                obj,
+                "caregiver_record",
+                None
+            )
+
+            if caregiver is not None:
+                return caregiver.is_verified
+
+            return False
+
+        # For other account types, use the account verification field.
+        return getattr(obj, "is_verified", False)

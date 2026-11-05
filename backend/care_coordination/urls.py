@@ -1,10 +1,10 @@
-
 from django.urls import path
 
 from .views import (
     CareScheduleListCreateView,
     CareScheduleDetailView,
     CancelCareScheduleView,
+    CaregiverBookingDecisionView,
     ConversationListCreateView,
     ConversationMessagesView,
     CareUpdateListCreateView,
@@ -26,6 +26,11 @@ urlpatterns = [
         "care-schedules/<int:pk>/cancel/",
         CancelCareScheduleView.as_view(),
         name="care-schedule-cancel",
+    ),
+    path(
+        "care-schedules/<int:pk>/decision/<str:decision>/",
+        CaregiverBookingDecisionView.as_view(),
+        name="care-schedule-decision",
     ),
     path(
         "conversations/",

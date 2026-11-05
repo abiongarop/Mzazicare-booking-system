@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 
+import '../auth/auth_screen.dart';
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
@@ -47,6 +49,51 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       });
     }
   }
+
+  Future<void> _logout() async {
+  final shouldLogout = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Log out'),
+      content: const Text(
+        'Are you sure you want to log out of the admin dashboard?',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(dialogContext, true),
+          child: const Text('Log out'),
+        ),
+      ],
+    ),
+  );
+
+  if (shouldLogout != true || !mounted) return;
+
+  try {
+    await FirebaseAuth.instance.signOut();
+
+    if (!mounted) return;
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => const AuthScreen(),
+      ),
+      (route) => false,
+    );
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Could not log out: $e'),
+      ),
+    );
+  }
+}
 
   int number(String key) {
     final value = statistics[key];
@@ -242,15 +289,30 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MzaziCare Admin'),
-        actions: [
-          IconButton(
-            tooltip: 'Refresh dashboard',
-            onPressed: isLoading ? null : loadDashboard,
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
+  title: const Text('MzaziCare Admin'),
+  actions: [
+    IconButton(
+      tooltip: 'Refresh dashboard',
+      onPressed: isLoading ? null : loadDashboard,
+      icon: const Icon(Icons.refresh),
+    ),
+    TextButton.icon(
+      onPressed: _logout,
+      icon: const Icon(
+        Icons.logout,
+        color: Colors.red,
       ),
+      label: const Text(
+        'Log out',
+        style: TextStyle(
+          color: Colors.red,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ),
+    const SizedBox(width: 8),
+  ],
+),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : errorMessage != null

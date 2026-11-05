@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
 import '../recommendations/recommendations_screen.dart';
+import '../theme/app_theme.dart';
 
 class FamilyProfileScreen extends StatefulWidget {
   const FamilyProfileScreen({super.key});
@@ -12,6 +13,7 @@ class FamilyProfileScreen extends StatefulWidget {
 
 class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
   final _formKey = GlobalKey<FormState>();
+
   final _phoneController = TextEditingController();
   final _locationController = TextEditingController();
   final _ageController = TextEditingController();
@@ -34,8 +36,6 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
     'Medication assistance',
     'Personal hygiene',
   ];
-
-  static const _primary = Color(0xFF16877A);
 
   final Set<String> _selectedServices = {};
   final Set<String> _selectedSkills = {};
@@ -145,13 +145,10 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
 
       _showMessage('Profile saved. Updating your recommendations...');
 
-      // Fetch recommendations after saving. This also verifies that
-      // the recommendation endpoint can read the latest profile.
       await ApiService.getFamilyRecommendations();
 
       if (!mounted) return;
 
-      // Open the recommendation page with a fresh fetch.
       await Navigator.push(
         context,
         MaterialPageRoute(
@@ -179,13 +176,13 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
 
   Widget _sectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(top: 20, bottom: 8),
+      padding: const EdgeInsets.only(top: 22, bottom: 10),
       child: Text(
         title,
         style: const TextStyle(
-          fontSize: 18,
+          fontSize: 17,
           fontWeight: FontWeight.bold,
-          color: Color(0xFF174A45),
+          color: MzaziCareColors.text,
         ),
       ),
     );
@@ -207,9 +204,6 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
         ),
         validator: (value) {
           final text = value?.trim() ?? '';
@@ -249,7 +243,8 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
             contentPadding: EdgeInsets.zero,
             title: Text(option),
             value: selected.contains(option),
-            activeColor: _primary,
+            activeColor: MzaziCareColors.primary,
+            checkColor: Colors.white,
             onChanged: (checked) {
               setState(() {
                 if (checked == true) {
@@ -275,12 +270,7 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
       padding: const EdgeInsets.only(bottom: 14),
       child: DropdownButtonFormField<String>(
         initialValue: value,
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
+        decoration: InputDecoration(labelText: label),
         items: items,
         onChanged: onChanged,
       ),
@@ -290,152 +280,164 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: MzaziCareColors.background,
       appBar: AppBar(
         title: const Text('Family Care Profile'),
-        backgroundColor: _primary,
-        foregroundColor: Colors.white,
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 650),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Text(
-                          'Tell us about the care your loved one needs.',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        _sectionTitle('Contact and location'),
-                        _textField(
-                          _phoneController,
-                          'Contact phone',
-                          keyboardType: TextInputType.phone,
-                        ),
-                        _textField(
-                          _locationController,
-                          'Location',
-                          hint: 'e.g. Westlands, Nairobi',
-                        ),
-                        _sectionTitle('Care recipient'),
-                        _textField(
-                          _ageController,
-                          'Care recipient age',
-                          keyboardType: TextInputType.number,
-                        ),
-                        _dropdown(
-                          label: 'Gender',
-                          value: _gender,
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'female',
-                              child: Text('Female'),
+          : Form(
+              key: _formKey,
+              child: ListView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 20,
+                ),
+                children: [
+                  const Text(
+                    'Tell us about the care your loved one needs.',
+                    style: TextStyle(fontSize: 15, height: 1.5),
+                  ),
+
+                  _sectionTitle('Contact and location'),
+
+                  _textField(
+                    _phoneController,
+                    'Contact phone',
+                    keyboardType: TextInputType.phone,
+                  ),
+
+                  _textField(
+                    _locationController,
+                    'Location',
+                    hint: 'e.g. Westlands, Nairobi',
+                  ),
+
+                  _sectionTitle('Care recipient'),
+
+                  _textField(
+                    _ageController,
+                    'Care recipient age',
+                    keyboardType: TextInputType.number,
+                  ),
+
+                  _dropdown(
+                    label: 'Gender',
+                    value: _gender,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'female',
+                        child: Text('Female'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'male',
+                        child: Text('Male'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'other',
+                        child: Text('Other / Prefer not to say'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() => _gender = value);
+                    },
+                  ),
+
+                  _choiceGroup(
+                    'Required care services',
+                    _services,
+                    _selectedServices,
+                  ),
+
+                  _choiceGroup(
+                    'Required caregiver skills',
+                    _skills,
+                    _selectedSkills,
+                  ),
+
+                  _sectionTitle('Care arrangements'),
+
+                  _dropdown(
+                    label: 'Level of care',
+                    value: _careLevel,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'basic',
+                        child: Text('Basic assistance'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'moderate',
+                        child: Text('Moderate assistance'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'intensive',
+                        child: Text('Intensive assistance'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() => _careLevel = value);
+                    },
+                  ),
+
+                  _dropdown(
+                    label: 'Preferred arrangement',
+                    value: _arrangement,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'full_time',
+                        child: Text('Full-time'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'part_time',
+                        child: Text('Part-time'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'occasional',
+                        child: Text('Occasional'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'live_in',
+                        child: Text('Live-in'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() => _arrangement = value);
+                    },
+                  ),
+
+                  _sectionTitle('Additional information'),
+
+                  _textField(
+                    _notesController,
+                    'Additional notes',
+                    maxLines: 4,
+                    hint: 'Describe any other care needs...',
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  SizedBox(
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _saving ? null : _saveProfile,
+                      child: _saving
+                          ? const SizedBox(
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Save and Update Recommendations',
+                              style: TextStyle(fontSize: 16),
                             ),
-                            DropdownMenuItem(
-                              value: 'male',
-                              child: Text('Male'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'other',
-                              child: Text('Other / Prefer not to say'),
-                            ),
-                          ],
-                          onChanged: (value) {
-                            setState(() => _gender = value);
-                          },
-                        ),
-                        _choiceGroup(
-                          'Required care services',
-                          _services,
-                          _selectedServices,
-                        ),
-                        _choiceGroup(
-                          'Required caregiver skills',
-                          _skills,
-                          _selectedSkills,
-                        ),
-                        _sectionTitle('Care arrangements'),
-                        _dropdown(
-                          label: 'Level of care',
-                          value: _careLevel,
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'basic',
-                              child: Text('Basic assistance'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'moderate',
-                              child: Text('Moderate assistance'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'intensive',
-                              child: Text('Intensive assistance'),
-                            ),
-                          ],
-                          onChanged: (value) {
-                            setState(() => _careLevel = value);
-                          },
-                        ),
-                        _dropdown(
-                          label: 'Preferred arrangement',
-                          value: _arrangement,
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'full_time',
-                              child: Text('Full-time'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'part_time',
-                              child: Text('Part-time'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'occasional',
-                              child: Text('Occasional'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'live_in',
-                              child: Text('Live-in'),
-                            ),
-                          ],
-                          onChanged: (value) {
-                            setState(() => _arrangement = value);
-                          },
-                        ),
-                        _sectionTitle('Additional information'),
-                        _textField(
-                          _notesController,
-                          'Additional notes',
-                          maxLines: 4,
-                          hint: 'Describe any other care needs...',
-                        ),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          height: 52,
-                          child: ElevatedButton(
-                            onPressed: _saving ? null : _saveProfile,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _primary,
-                              foregroundColor: Colors.white,
-                            ),
-                            child: _saving
-                                ? const CircularProgressIndicator(
-                                    color: Colors.white,
-                                  )
-                                : const Text(
-                                    'Save and Update Recommendations',
-                                    style: TextStyle(fontSize: 16),
-                                  ),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
-                ),
+
+                  const SizedBox(height: 20),
+                ],
               ),
             ),
     );
