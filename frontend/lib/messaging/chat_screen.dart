@@ -1,8 +1,9 @@
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
-import '../theme/app_theme.dart';
 
 class ChatScreen extends StatefulWidget {
   final int conversationId;
@@ -24,21 +25,33 @@ class _ChatScreenState extends State<ChatScreen> {
 
   final ScrollController _scrollController = ScrollController();
 
+  Timer? _refreshTimer;
+
   bool _loading = true;
   bool _sending = false;
+  bool _refreshing = false;
+
   String? _error;
 
-  List<dynamic> _messages = [];
+  List<Map<String, dynamic>> _messages = [];
   Map<String, dynamic> _profile = {};
 
   @override
   void initState() {
     super.initState();
+
     _loadMessages();
+
+    // Refresh messages and read receipts while the conversation is open.
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => _refreshMessagesSilently(),
+    );
   }
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -50,36 +63,50 @@ class _ChatScreenState extends State<ChatScreen> {
     return {};
   }
 
-  List<dynamic> _extractMessages(dynamic response) {
-    if (response is List) return response;
+  List<Map<String, dynamic>> _extractMessages(dynamic response) {
+    dynamic data = response;
 
     if (response is Map) {
-      final data = response['messages'] ??
+      data = response['messages'] ??
           response['results'] ??
           response['data'] ??
           [];
-
-      if (data is List) return data;
     }
 
-    return [];
+    if (data is! List) return [];
+
+    return data
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
   }
 
   Future<void> _loadMessages() async {
+    if (!mounted || _refreshing) return;
+
+    _refreshing = true;
+
+    if (_messages.isEmpty) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
+
     try {
       final results = await Future.wait([
         ApiService.getMessages(widget.conversationId),
         ApiService.getMyProfile(),
       ]);
 
-      final rawMessages = _extractMessages(results[0]);
-      final profileResponse = _toMap(results[1]);
+      final messages = _extractMessages(results[0]);
+      final profile = _toMap(results[1]);
 
       if (!mounted) return;
 
       setState(() {
-        _messages = rawMessages;
-        _profile = profileResponse;
+        _messages = messages;
+        _profile = profile;
         _loading = false;
         _error = null;
       });
@@ -92,6 +119,47 @@ class _ChatScreenState extends State<ChatScreen> {
         _error = e.toString();
         _loading = false;
       });
+    } finally {
+      _refreshing = false;
+    }
+  }
+
+  Future<void> _refreshMessagesSilently() async {
+    if (!mounted || _refreshing || _loading) return;
+
+    _refreshing = true;
+
+    try {
+      final response =
+          await ApiService.getMessages(widget.conversationId);
+
+      final messages = _extractMessages(response);
+
+      if (!mounted) return;
+
+      final oldLastId = _messages.isNotEmpty
+          ? _messages.last['id']?.toString()
+          : null;
+
+      final newLastId = messages.isNotEmpty
+          ? messages.last['id']?.toString()
+          : null;
+
+      final hasNewMessage =
+          oldLastId != newLastId || messages.length != _messages.length;
+
+      setState(() {
+        _messages = messages;
+      });
+
+      if (hasNewMessage) {
+        _scrollToBottom();
+      }
+    } catch (e) {
+      // Silent refresh: keep the existing conversation visible.
+      debugPrint('Message refresh failed: $e');
+    } finally {
+      _refreshing = false;
     }
   }
 
@@ -128,34 +196,85 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-        );
-      }
+      if (!_scrollController.hasClients) return;
+
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
     });
   }
 
-  bool _isMyMessage(Map<String, dynamic> message) {
-    final sender = message['sender_profile'];
+  String? _senderId(Map<String, dynamic> message) {
+    final sender = message['sender_profile'] ??
+        message['sender'];
 
-    final senderId = sender is Map
-        ? sender['id']?.toString()
-        : sender?.toString();
+    if (sender is Map) {
+      return sender['id']?.toString() ??
+          sender['profile_id']?.toString();
+    }
+
+    return sender?.toString();
+  }
+
+  bool _isMyMessage(Map<String, dynamic> message) {
+    final senderId = _senderId(message);
 
     final myId = _profile['id']?.toString();
 
-    return senderId != null &&
-        myId != null &&
-        senderId == myId;
+    if (senderId != null && myId != null) {
+      return senderId == myId;
+    }
+
+    // Optional fallback if the API supplies the sender Firebase UID.
+    final senderUid = message['sender_uid']?.toString();
+    final myUid = _profile['firebase_uid']?.toString();
+
+    return senderUid != null &&
+        myUid != null &&
+        senderUid == myUid;
+  }
+
+  String _senderName(
+    Map<String, dynamic> message,
+    bool mine,
+  ) {
+    if (mine) {
+      return 'You';
+    }
+
+    final senderName = message['sender_name']?.toString().trim();
+
+    if (senderName != null && senderName.isNotEmpty) {
+      return senderName;
+    }
+
+    final sender = message['sender_profile'] ??
+        message['sender'];
+
+    if (sender is Map) {
+      final name = sender['full_name']?.toString().trim();
+
+      if (name != null && name.isNotEmpty) {
+        return name;
+      }
+    }
+
+    return 'Other participant';
+  }
+
+  bool _isRead(Map<String, dynamic> message) {
+    final readAt = message['read_at'];
+
+    return readAt != null && readAt.toString().isNotEmpty;
   }
 
   String _formatTime(dynamic value) {
     if (value == null) return '';
 
     final date = DateTime.tryParse(value.toString());
+
     if (date == null) return '';
 
     final local = date.toLocal();
@@ -167,11 +286,34 @@ class _ChatScreenState extends State<ChatScreen> {
     return '$hour:$minute $period';
   }
 
-  Widget _messageBubble(Map<String, dynamic> message) {
-    final mine = _isMyMessage(message);
+  Widget _readReceipt(
+    Map<String, dynamic> message,
+    bool mine,
+  ) {
+    if (!mine) {
+      return const SizedBox.shrink();
+    }
 
-    final senderName =
-        message['sender_name']?.toString().trim();
+    final read = _isRead(message);
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 5),
+      child: Icon(
+        read ? Icons.done_all_rounded : Icons.done_rounded,
+        size: 16,
+        color: read
+            ? Colors.lightBlueAccent
+            : Colors.white70,
+      ),
+    );
+  }
+
+  Widget _messageBubble(Map<String, dynamic> message) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    final mine = _isMyMessage(message);
+    final senderName = _senderName(message, mine);
 
     return Align(
       alignment: mine
@@ -188,8 +330,8 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         decoration: BoxDecoration(
           color: mine
-              ? MzaziCareColors.primary
-              : MzaziCareColors.surface,
+              ? colors.primary
+              : colors.surfaceContainerHighest,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(17),
             topRight: const Radius.circular(17),
@@ -198,44 +340,45 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           border: mine
               ? null
-              : Border.all(color: MzaziCareColors.border),
+              : Border.all(color: colors.outlineVariant),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (!mine)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  senderName != null && senderName.isNotEmpty
-                      ? senderName
-                      : 'Other participant',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11,
-                    color: MzaziCareColors.primaryDark,
-                  ),
-                ),
-              ),
             Text(
-              message['body']?.toString() ?? '',
-              style: TextStyle(
-                color: mine ? Colors.white : MzaziCareColors.text,
-                height: 1.4,
+              senderName,
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: mine
+                    ? colors.onPrimary.withValues(alpha: 0.9)
+                    : colors.primary,
               ),
             ),
             const SizedBox(height: 5),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: Text(
-                _formatTime(message['created_at']),
-                style: TextStyle(
-                  fontSize: 10,
-                  color: mine
-                      ? Colors.white70
-                      : MzaziCareColors.textMuted,
-                ),
+            Text(
+              message['body']?.toString() ?? '',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: mine
+                    ? colors.onPrimary
+                    : colors.onSurface,
+                height: 1.4,
               ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  _formatTime(message['created_at']),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: mine
+                        ? colors.onPrimary.withValues(alpha: 0.75)
+                        : colors.onSurfaceVariant,
+                  ),
+                ),
+                _readReceipt(message, mine),
+              ],
             ),
           ],
         ),
@@ -244,32 +387,33 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _emptyMessages() {
-    return const Center(
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(28),
+        padding: const EdgeInsets.all(28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.chat_bubble_outline_rounded,
               size: 48,
-              color: MzaziCareColors.primaryDark,
+              color: colors.primary,
             ),
-            SizedBox(height: 14),
+            const SizedBox(height: 14),
             Text(
               'No messages yet',
-              style: TextStyle(
-                fontSize: 17,
+              style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: MzaziCareColors.text,
               ),
             ),
-            SizedBox(height: 7),
+            const SizedBox(height: 7),
             Text(
               'Send a message to start the conversation.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: MzaziCareColors.textMuted,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colors.onSurfaceVariant,
                 height: 1.5,
               ),
             ),
@@ -280,31 +424,33 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _errorView() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.cloud_off_outlined,
               size: 42,
-              color: MzaziCareColors.primaryDark,
+              color: colors.primary,
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Unable to load messages.',
-              style: TextStyle(
+              style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: MzaziCareColors.text,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               _error ?? 'An unexpected error occurred.',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: MzaziCareColors.textMuted,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 16),
@@ -319,15 +465,18 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _messageInput() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return SafeArea(
       top: false,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
         decoration: BoxDecoration(
-          color: MzaziCareColors.surface,
+          color: colors.surface,
           border: Border(
-            top: BorderSide(color: MzaziCareColors.border),
+            top: BorderSide(color: colors.outlineVariant),
           ),
         ),
         child: Row(
@@ -344,7 +493,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   hintText: 'Write a message...',
                   counterText: '',
                   filled: true,
-                  fillColor: MzaziCareColors.surfaceSoft,
+                  fillColor: colors.surfaceContainerHighest,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 17,
                     vertical: 13,
@@ -359,8 +508,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
-                    borderSide: const BorderSide(
-                      color: MzaziCareColors.primary,
+                    borderSide: BorderSide(
+                      color: colors.primary,
                     ),
                   ),
                 ),
@@ -376,20 +525,18 @@ class _ChatScreenState extends State<ChatScreen> {
                 style: FilledButton.styleFrom(
                   padding: EdgeInsets.zero,
                   shape: const CircleBorder(),
-                  backgroundColor: MzaziCareColors.primary,
                 ),
                 child: _sending
-                    ? const SizedBox(
+                    ? SizedBox(
                         height: 19,
                         width: 19,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: colors.onPrimary,
                         ),
                       )
                     : const Icon(
                         Icons.send_rounded,
-                        color: Colors.white,
                         size: 19,
                       ),
               ),
@@ -402,16 +549,18 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: MzaziCareColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Conversation',
-              style: TextStyle(
-                fontSize: 16,
+              style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -419,9 +568,8 @@ class _ChatScreenState extends State<ChatScreen> {
               widget.caregiverId.isNotEmpty
                   ? widget.caregiverId
                   : 'MzaziCare messages',
-              style: const TextStyle(
-                fontSize: 12,
-                color: MzaziCareColors.textMuted,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
               ),
             ),
           ],
@@ -454,14 +602,8 @@ class _ChatScreenState extends State<ChatScreen> {
                               padding: const EdgeInsets.all(16),
                               itemCount: _messages.length,
                               itemBuilder: (context, index) {
-                                final item = _messages[index];
-
-                                if (item is! Map) {
-                                  return const SizedBox.shrink();
-                                }
-
                                 return _messageBubble(
-                                  Map<String, dynamic>.from(item),
+                                  _messages[index],
                                 );
                               },
                             ),

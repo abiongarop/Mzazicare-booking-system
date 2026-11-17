@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
-import '../theme/app_theme.dart';
 import 'chat_screen.dart';
 
 class MessagesScreen extends StatefulWidget {
@@ -17,7 +16,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
   String? _error;
 
   String _role = '';
-  List<dynamic> _conversations = [];
+  List<Map<String, dynamic>> _conversations = [];
 
   @override
   void initState() {
@@ -29,6 +28,24 @@ class _MessagesScreenState extends State<MessagesScreen> {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) return Map<String, dynamic>.from(value);
     return {};
+  }
+
+  List<Map<String, dynamic>> _extractList(dynamic response) {
+    dynamic data = response;
+
+    if (response is Map) {
+      data = response['conversations'] ??
+          response['results'] ??
+          response['data'] ??
+          [];
+    }
+
+    if (data is! List) return [];
+
+    return data
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
   }
 
   Future<void> _loadConversations() async {
@@ -48,15 +65,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
       final response = _toMap(results[0]);
       final profile = _toMap(results[1]);
 
-      final data = response['conversations'] ??
-          response['results'] ??
-          response['data'] ??
-          [];
-
       if (!mounted) return;
 
       setState(() {
-        _conversations = data is List ? data : [];
+        _conversations = _extractList(response);
         _role = profile['role']?.toString().toLowerCase() ?? '';
         _loading = false;
       });
@@ -70,7 +82,6 @@ class _MessagesScreenState extends State<MessagesScreen> {
     }
   }
 
-  // Caregivers can select a family from one of their bookings.
   Future<void> _startConversationWithFamily() async {
     try {
       final response = await ApiService.getCareSchedules();
@@ -88,11 +99,11 @@ class _MessagesScreenState extends State<MessagesScreen> {
               if (item is! Map) return false;
 
               final schedule = _toMap(item);
-              final bookingStatus =
+              final status =
                   schedule['status']?.toString().toLowerCase();
 
-              return bookingStatus != 'cancelled' &&
-                  bookingStatus != 'declined';
+              return status != 'cancelled' &&
+                  status != 'declined';
             }).map((item) => _toMap(item)).toList()
           : <Map<String, dynamic>>[];
 
@@ -110,13 +121,16 @@ class _MessagesScreenState extends State<MessagesScreen> {
       await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        backgroundColor: MzaziCareColors.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
             top: Radius.circular(22),
           ),
         ),
         builder: (sheetContext) {
+          final theme = Theme.of(sheetContext);
+          final colors = theme.colorScheme;
+
           return SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -124,19 +138,18 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Message a family',
-                    style: TextStyle(
-                      fontSize: 19,
+                    style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: MzaziCareColors.text,
+                      color: colors.onSurface,
                     ),
                   ),
                   const SizedBox(height: 7),
-                  const Text(
+                  Text(
                     'Choose a family from one of your bookings.',
-                    style: TextStyle(
-                      color: MzaziCareColors.textMuted,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colors.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 15),
@@ -144,8 +157,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: schedules.length,
-                      separatorBuilder: (context, index) =>
-                          const Divider(height: 1),
+                      separatorBuilder: (_, __) => Divider(
+                        height: 1,
+                        color: colors.outlineVariant,
+                      ),
                       itemBuilder: (context, index) {
                         final schedule = schedules[index];
 
@@ -157,37 +172,39 @@ class _MessagesScreenState extends State<MessagesScreen> {
                             schedule['family_name']?.toString() ??
                                 'Family';
 
-                        final bookingStatus =
-                            schedule['status']?.toString() ??
-                                'Booking';
+                        final status =
+                            schedule['status']?.toString() ?? 'Booking';
 
                         final location =
-                            schedule['family_location']?.toString() ??
-                                '';
+                            schedule['family_location']?.toString() ?? '';
 
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
-                          leading: const CircleAvatar(
-                            backgroundColor: MzaziCareColors.accent,
+                          leading: CircleAvatar(
+                            backgroundColor: colors.primaryContainer,
                             child: Icon(
                               Icons.person_outline,
-                              color: MzaziCareColors.primaryDark,
+                              color: colors.onPrimaryContainer,
                             ),
                           ),
                           title: Text(
                             familyName,
-                            style: const TextStyle(
+                            style: theme.textTheme.bodyLarge?.copyWith(
                               fontWeight: FontWeight.w600,
+                              color: colors.onSurface,
                             ),
                           ),
                           subtitle: Text(
                             location.isNotEmpty
-                                ? '$bookingStatus • $location'
-                                : bookingStatus,
+                                ? '$status • $location'
+                                : status,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colors.onSurfaceVariant,
+                            ),
                           ),
-                          trailing: const Icon(
+                          trailing: Icon(
                             Icons.chat_bubble_outline,
-                            color: MzaziCareColors.primaryDark,
+                            color: colors.primary,
                           ),
                           onTap: scheduleId == null
                               ? null
@@ -230,8 +247,14 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
       final conversation = _toMap(response);
 
+      // Some APIs wrap the created conversation in a data object.
+      final conversationData =
+          _toMap(conversation['conversation']).isNotEmpty
+              ? _toMap(conversation['conversation'])
+              : conversation;
+
       final conversationId = int.tryParse(
-        conversation['id']?.toString() ?? '',
+        conversationData['id']?.toString() ?? '',
       );
 
       if (conversationId == null) {
@@ -271,11 +294,13 @@ class _MessagesScreenState extends State<MessagesScreen> {
   String _participantName(Map<String, dynamic> conversation) {
     if (_role == 'caregiver') {
       return conversation['family_name']?.toString() ??
+          conversation['family_profile_name']?.toString() ??
           conversation['family_profile_id']?.toString() ??
           'Family';
     }
 
     return conversation['caregiver_name']?.toString() ??
+        conversation['caregiver_full_name']?.toString() ??
         conversation['caregiver_id']?.toString() ??
         'Caregiver';
   }
@@ -311,9 +336,20 @@ class _MessagesScreenState extends State<MessagesScreen> {
     }
   }
 
+  int _unreadCount(Map<String, dynamic> conversation) {
+    return int.tryParse(
+          conversation['unread_count']?.toString() ?? '0',
+        ) ??
+        0;
+  }
+
   Widget _conversationCard(
+    BuildContext context,
     Map<String, dynamic> conversation,
   ) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     final participant = _participantName(conversation);
     final messageCount = conversation['messages_count'] ?? 0;
 
@@ -321,10 +357,11 @@ class _MessagesScreenState extends State<MessagesScreen> {
         conversation['last_message']?.toString() ??
             'Open conversation to view messages';
 
-    final unread = conversation['unread_count'];
+    final unread = _unreadCount(conversation);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 11),
+      color: colors.surface,
       child: InkWell(
         onTap: () => _openConversation(conversation),
         borderRadius: BorderRadius.circular(18),
@@ -334,10 +371,10 @@ class _MessagesScreenState extends State<MessagesScreen> {
             children: [
               CircleAvatar(
                 radius: 25,
-                backgroundColor: MzaziCareColors.accent,
-                child: const Icon(
+                backgroundColor: colors.primaryContainer,
+                child: Icon(
                   Icons.person_outline_rounded,
-                  color: MzaziCareColors.primaryDark,
+                  color: colors.onPrimaryContainer,
                   size: 27,
                 ),
               ),
@@ -348,10 +385,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   children: [
                     Text(
                       participant,
-                      style: const TextStyle(
+                      style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        fontSize: 15,
-                        color: MzaziCareColors.text,
+                        color: colors.onSurface,
                       ),
                     ),
                     const SizedBox(height: 5),
@@ -359,43 +395,41 @@ class _MessagesScreenState extends State<MessagesScreen> {
                       lastMessage,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: theme.textTheme.bodySmall?.copyWith(
                         fontSize: 13,
-                        color: MzaziCareColors.textMuted,
+                        color: colors.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 5),
                     Text(
                       '$messageCount messages',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: MzaziCareColors.primaryDark,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colors.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
                 ),
               ),
-              if (unread != null && unread.toString() != '0')
+              if (unread > 0)
                 Container(
                   padding: const EdgeInsets.all(7),
-                  decoration: const BoxDecoration(
-                    color: MzaziCareColors.primary,
+                  decoration: BoxDecoration(
+                    color: colors.primary,
                     shape: BoxShape.circle,
                   ),
                   child: Text(
                     unread.toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colors.onPrimary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               const SizedBox(width: 8),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
-                color: MzaziCareColors.primaryDark,
+                color: colors.onSurfaceVariant,
               ),
             ],
           ),
@@ -405,6 +439,9 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   Widget _emptyState() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(28),
@@ -415,26 +452,29 @@ class _MessagesScreenState extends State<MessagesScreen> {
               height: 76,
               width: 76,
               decoration: BoxDecoration(
-                color: MzaziCareColors.accent,
+                color: colors.primaryContainer,
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.chat_bubble_outline_rounded,
                 size: 37,
-                color: MzaziCareColors.primaryDark,
+                color: colors.onPrimaryContainer,
               ),
             ),
             const SizedBox(height: 17),
             Text(
               'No conversations yet',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: colors.onSurface,
+              ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Conversations linked to your care bookings will appear here. You can also start a conversation from a booking.',
+            Text(
+              'Conversations linked to your care bookings will appear here. '
+              'You can also start a conversation from a booking.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: MzaziCareColors.textMuted,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colors.onSurfaceVariant,
                 height: 1.5,
               ),
             ),
@@ -445,31 +485,34 @@ class _MessagesScreenState extends State<MessagesScreen> {
   }
 
   Widget _errorState() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.cloud_off_outlined,
               size: 42,
-              color: MzaziCareColors.primaryDark,
+              color: colors.error,
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Unable to load conversations.',
-              style: TextStyle(
+              style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: MzaziCareColors.text,
+                color: colors.onSurface,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               _error ?? '',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: MzaziCareColors.textMuted,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colors.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 16),
@@ -485,16 +528,18 @@ class _MessagesScreenState extends State<MessagesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: MzaziCareColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Messages'),
         actions: [
           if (_role == 'caregiver')
             IconButton(
               tooltip: 'Start a conversation with a family',
-              onPressed:
-                  _loading ? null : _startConversationWithFamily,
+              onPressed: _loading ? null : _startConversationWithFamily,
               icon: const Icon(Icons.add_comment_outlined),
             ),
           IconButton(
@@ -513,8 +558,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
                   : RefreshIndicator(
                       onRefresh: _loadConversations,
                       child: ListView(
-                        physics:
-                            const AlwaysScrollableScrollPhysics(),
+                        physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.fromLTRB(
                           20,
                           18,
@@ -522,20 +566,29 @@ class _MessagesScreenState extends State<MessagesScreen> {
                           30,
                         ),
                         children: [
-                          MzaziSectionHeader(
-                            title: 'Your conversations',
-                            subtitle: _role == 'caregiver'
+                          Text(
+                            'Your conversations',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: colors.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            _role == 'caregiver'
                                 ? 'Stay connected with the families you care for.'
                                 : 'Stay connected with your caregivers.',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: colors.onSurfaceVariant,
+                            ),
                           ),
                           const SizedBox(height: 16),
-                          ..._conversations.map((item) {
-                            if (item is! Map) {
-                              return const SizedBox.shrink();
-                            }
-
-                            return _conversationCard(_toMap(item));
-                          }),
+                          ..._conversations.map(
+                            (conversation) => _conversationCard(
+                              context,
+                              conversation,
+                            ),
+                          ),
                         ],
                       ),
                     ),

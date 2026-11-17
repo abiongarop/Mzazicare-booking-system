@@ -141,10 +141,11 @@ class Command(BaseCommand):
         """, record).consume()
 
         tx.run("""
-            MATCH (c:Caregiver {caregiver_id: $caregiver_id})
-            MERGE (l:Location {name: $location})
-            MERGE (c)-[:LOCATED_IN]->(l)
-        """, record).consume()
+    MATCH (c:Caregiver {caregiver_id: $caregiver_id})
+    MERGE (l:Location {name: $location})
+    SET c.location = $location
+    MERGE (c)-[:LOCATED_IN]->(l)
+""", record).consume()
 
         tx.run("""
             MATCH (c:Caregiver {caregiver_id: $caregiver_id})
@@ -181,15 +182,11 @@ class Command(BaseCommand):
     @staticmethod
     def write_client(tx, record):
         tx.run("""
-            MERGE (c:Client {client_id: $client_id})
-            SET c.age = $age,
-                c.gender = $gender,
-                c.care_level = $care_level
-
-            WITH c
-            OPTIONAL MATCH (c)-[old:LOCATED_IN]->(:Location)
-            DELETE old
-        """, record).consume()
+    MATCH (c:Client {client_id: $client_id})
+    MERGE (l:Location {name: $location})
+    SET c.location = $location
+    MERGE (c)-[:LOCATED_IN]->(l)
+""", record).consume()
 
         tx.run("""
             MATCH (c:Client {client_id: $client_id})

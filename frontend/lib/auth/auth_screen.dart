@@ -1,4 +1,4 @@
-
+import '../onboarding/family_profile_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -6,6 +6,7 @@ import '../services/api_service.dart';
 import '../dashboards/family_dashboard_screen.dart';
 import '../dashboards/caregiver_dashboard_screen.dart';
 import '../admin/admin_dashboard_screen.dart';
+import '../onboarding/caregiver_profile_screen.dart';
 
 enum AuthMode { signIn, register }
 
@@ -35,10 +36,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   static const Color _primary = Color(0xFFC8758D);
   static const Color _primaryDark = Color(0xFFA95570);
-  static const Color _background = Color(0xFFFFF6F5);
-  static const Color _navy = Color(0xFF593847);
-  static const Color _muted = Color(0xFF745C67);
-  static const Color _border = Color(0xFFF0DDE3);
+
 
   bool get _isRegistering => _mode == AuthMode.register;
 
@@ -53,9 +51,7 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   String get _roleLabel {
-    return _selectedRole == 'caregiver'
-        ? 'Caregiver'
-        : 'Family Member';
+    return _selectedRole == 'caregiver' ? 'Caregiver' : 'Family Member';
   }
 
   @override
@@ -77,6 +73,29 @@ class _AuthScreenState extends State<AuthScreen> {
     });
   }
 
+  bool _isFamilyProfileComplete(Map<String, dynamic> profile) {
+  if (profile.isEmpty) return false;
+
+  final phone = profile['contact_phone']?.toString().trim() ?? '';
+  final location = profile['location']?.toString().trim() ?? '';
+
+  final age = int.tryParse(
+    profile['care_recipient_age']?.toString() ?? '',
+  );
+
+  final services = profile['required_services'];
+
+  final hasRequiredServices =
+      services is List && services.isNotEmpty;
+
+  return phone.isNotEmpty &&
+      location.isNotEmpty &&
+      age != null &&
+      age >= 1 &&
+      age <= 120 &&
+      hasRequiredServices;
+}
+
   Future<void> _authenticate(
     UserCredential credential, {
     required bool isNewUser,
@@ -92,47 +111,41 @@ class _AuthScreenState extends State<AuthScreen> {
     // 1. Verify Firebase authentication with Django.
     await ApiService.checkAuthentication();
 
-    // 2. Retrieve the MzaziCare profile.
+    // 2. Retrieve the MzaziCare account.
     var profile = await ApiService.getMyProfile();
 
-    debugPrint('Retrieved profile: $profile');
+    debugPrint('Retrieved MzaziCare profile: $profile');
 
     String? role = profile['role']?.toString().trim().toLowerCase();
 
-    // 3. Assign the landing-page role to newly registered accounts.
+    // 3. Assign a role to newly registered users.
     if (isNewUser) {
       final selectedRole = _selectedRole;
 
       if (selectedRole == null) {
         throw Exception(
           'No account type was selected. Please return to the '
-          'landing page and choose Find a Caregiver or '
-          'Become a Caregiver.',
+          'landing page and choose an account type.',
         );
       }
 
-      debugPrint('Assigning new account role: $selectedRole');
+      debugPrint('Assigning account role: $selectedRole');
 
-      final response = await ApiService.selectRole(
-        role: selectedRole,
-      );
+      await ApiService.selectRole(role: selectedRole);
 
-      debugPrint('Role assignment response: $response');
-
-      // 4. Fetch the profile again to confirm the saved role.
+      // Confirm that Django saved the role.
       profile = await ApiService.getMyProfile();
-
       role = profile['role']?.toString().trim().toLowerCase();
 
       if (role != selectedRole) {
         throw Exception(
-          'Role assignment was not confirmed. '
+          'Role assignment could not be confirmed. '
           'Expected $selectedRole but received $role.',
         );
       }
     }
 
-    // 5. Validate the role.
+    // 4. Validate the account role.
     if (role == null || role.isEmpty) {
       throw Exception(
         'Your account role could not be determined. '
@@ -142,26 +155,51 @@ class _AuthScreenState extends State<AuthScreen> {
 
     debugPrint('Final MzaziCare role: $role');
 
-    // 6. Navigate directly to the correct dashboard.
-    late final Widget destination;
+    // 5. Determine the correct destination.
+    // 5. Determine the correct destination.
+late final Widget destination;
 
-    switch (role) {
-      case 'admin':
-        destination = const AdminDashboardScreen();
-        break;
+switch (role) {
+  case 'admin':
+    destination = const AdminDashboardScreen();
+    break;
 
-      case 'client':
-        destination = const FamilyDashboardScreen();
-        break;
+  case 'client':
+    final familyProfile = await ApiService.getFamilyCareProfile();
 
-      case 'caregiver':
-        destination = const CaregiverDashboardScreen();
-        break;
+    debugPrint('Family profile response: $familyProfile');
 
-      default:
-        throw Exception('Unrecognised account role: $role.');
+    final familyProfileComplete =
+        _isFamilyProfileComplete(familyProfile);
+
+    // New family registrations must complete onboarding first.
+    // Returning users with incomplete profiles must also complete it.
+    if (isNewUser || !familyProfileComplete) {
+      destination = const FamilyProfileScreen();
+    } else {
+      destination = const FamilyDashboardScreen();
     }
+    break;
 
+  case 'caregiver':
+    final caregiverProfile = await ApiService.getCaregiverProfile();
+
+    debugPrint('Caregiver profile response: $caregiverProfile');
+
+    if (caregiverProfile.isEmpty) {
+      destination = const CaregiverProfileScreen(
+        isOnboarding: true,
+      );
+    } else {
+      destination = const CaregiverDashboardScreen();
+    }
+    break;
+
+  default:
+    throw Exception('Unrecognised account role: $role.');
+}
+
+    // 6. Navigate only if this screen is still active.
     if (!mounted) return;
 
     Navigator.of(context).pushAndRemoveUntil(
@@ -229,17 +267,21 @@ class _AuthScreenState extends State<AuthScreen> {
           );
         }
 
-        credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        credential =
+            await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: email,
           password: password,
         );
 
         isNewUser = true;
       } else {
-        credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        credential =
+            await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: email,
           password: password,
         );
+        //temp debugging
+        await ApiService.debugMyProfile();
       }
 
       await _authenticate(
@@ -341,8 +383,11 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: _background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -359,10 +404,12 @@ class _AuthScreenState extends State<AuthScreen> {
                   const SizedBox(height: 30),
                   _buildAuthCard(),
                   const SizedBox(height: 22),
-                  const Text(
+                  Text(
                     'Your loved ones deserve compassionate care.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: _muted, fontSize: 13),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -374,6 +421,9 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Widget _buildBrandHeader() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Column(
       children: [
         Container(
@@ -397,13 +447,15 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        const Text(
+        Text(
           'MzaziCare',
-          style: TextStyle(
+          style: theme.textTheme.headlineMedium?.copyWith(
             fontSize: 30,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.8,
-            color: _primaryDark,
+            color: theme.brightness == Brightness.dark
+                ? colors.primary
+                : _primaryDark,
           ),
         ),
         const SizedBox(height: 8),
@@ -412,10 +464,9 @@ class _AuthScreenState extends State<AuthScreen> {
               ? 'Create your $_roleLabel account.'
               : 'Trusted care. Peace of mind. Closer connections.',
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: _muted,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colors.onSurfaceVariant,
             height: 1.5,
-            fontSize: 14,
           ),
         ),
       ],
@@ -423,171 +474,176 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Widget _buildAuthCard() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    return Card(
+      elevation: 2,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _border),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF593847).withValues(alpha: 0.06),
-            blurRadius: 28,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        side: BorderSide(color: colors.outlineVariant),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            _isRegistering ? 'Create an account' : 'Welcome back',
-            style: const TextStyle(
-              fontSize: 23,
-              fontWeight: FontWeight.w700,
-              color: _navy,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              _isRegistering ? 'Create an account' : 'Welcome back',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontSize: 23,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            _isRegistering
-                ? 'Join the MzaziCare community as a $_roleLabel.'
-                : 'Sign in to continue to your account.',
-            style: const TextStyle(color: _muted, fontSize: 13),
-          ),
-          const SizedBox(height: 22),
-          _buildGoogleButton(),
-          const SizedBox(height: 22),
-          Row(
-            children: [
-              const Expanded(child: Divider(color: _border)),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  'OR CONTINUE WITH EMAIL',
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
+            const SizedBox(height: 6),
+            Text(
+              _isRegistering
+                  ? 'Join the MzaziCare community as a $_roleLabel.'
+                  : 'Sign in to continue to your account.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 22),
+            _buildGoogleButton(),
+            const SizedBox(height: 22),
+            Row(
+              children: [
+                Expanded(
+                  child: Divider(color: colors.outlineVariant),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    'OR CONTINUE WITH EMAIL',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                    ),
                   ),
                 ),
-              ),
-              const Expanded(child: Divider(color: _border)),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildEmailField(),
-                const SizedBox(height: 15),
-                _buildPasswordField(),
-                if (_isRegistering) ...[
+                Expanded(
+                  child: Divider(color: colors.outlineVariant),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildEmailField(),
                   const SizedBox(height: 15),
-                  _buildConfirmPasswordField(),
-                ],
-                if (!_isRegistering)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: _isLoading ? null : _resetPassword,
-                      child: const Text(
-                        'Forgot password?',
-                        style: TextStyle(
-                          color: _primary,
-                          fontWeight: FontWeight.w600,
+                  _buildPasswordField(),
+                  if (_isRegistering) ...[
+                    const SizedBox(height: 15),
+                    _buildConfirmPasswordField(),
+                  ],
+                  if (!_isRegistering)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: _isLoading ? null : _resetPassword,
+                        child: const Text(
+                          'Forgot password?',
+                          style: TextStyle(
+                            color: _primary,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                if (_errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  _buildErrorBanner(_errorMessage!),
-                ],
-                const SizedBox(height: 18),
-                SizedBox(
-                  height: 52,
-                  child: FilledButton(
-                    onPressed: _isLoading ? null : _submitEmailForm,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: _primary,
-                      disabledBackgroundColor:
-                          _primary.withValues(alpha: 0.55),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    _buildErrorBanner(_errorMessage!),
+                  ],
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    height: 52,
+                    child: FilledButton(
+                      onPressed: _isLoading ? null : _submitEmailForm,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: colors.primary,
+                        disabledBackgroundColor:
+                            colors.primary.withValues(alpha: 0.55),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2.3,
+                              ),
+                            )
+                          : Text(
+                              _isRegistering ? 'Create account' : 'Sign in',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                     ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2.3,
-                            ),
-                          )
-                        : Text(
-                            _isRegistering ? 'Create account' : 'Sign in',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(
+                    _isRegistering
+                        ? 'Already have an account?'
+                        : "Don't have an account?",
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: _isLoading
+                      ? null
+                      : () => _setMode(
+                            _isRegistering
+                                ? AuthMode.signIn
+                                : AuthMode.register,
                           ),
+                  child: Text(
+                    _isRegistering ? 'Sign in' : 'Register',
+                    style: const TextStyle(
+                      color: _primary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Flexible(
-                child: Text(
-                  _isRegistering
-                      ? 'Already have an account?'
-                      : "Don't have an account?",
-                  style: const TextStyle(
-                    color: _muted,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: _isLoading
-                    ? null
-                    : () => _setMode(
-                          _isRegistering
-                              ? AuthMode.signIn
-                              : AuthMode.register,
-                        ),
-                child: Text(
-                  _isRegistering ? 'Sign in' : 'Register',
-                  style: const TextStyle(
-                    color: _primary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildGoogleButton() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return SizedBox(
       height: 50,
       child: OutlinedButton(
         onPressed: _isLoading ? null : _signInWithGoogle,
         style: OutlinedButton.styleFrom(
-          foregroundColor: _navy,
-          side: const BorderSide(color: _border),
+          foregroundColor: colors.onSurface,
+          side: BorderSide(color: colors.outlineVariant),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -613,9 +669,12 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
             ),
             const SizedBox(width: 11),
-            const Text(
+            Text(
               'Continue with Google',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: colors.onSurface,
+              ),
             ),
           ],
         ),
@@ -650,6 +709,8 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Widget _buildPasswordField() {
+    final colors = Theme.of(context).colorScheme;
+
     return TextFormField(
       controller: _passwordController,
       enabled: !_isLoading,
@@ -677,7 +738,7 @@ class _AuthScreenState extends State<AuthScreen> {
             _obscurePassword
                 ? Icons.visibility_outlined
                 : Icons.visibility_off_outlined,
-            color: _muted,
+            color: colors.onSurfaceVariant,
           ),
         ),
       ),
@@ -696,6 +757,8 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Widget _buildConfirmPasswordField() {
+    final colors = Theme.of(context).colorScheme;
+
     return TextFormField(
       controller: _confirmPasswordController,
       enabled: !_isLoading,
@@ -718,7 +781,7 @@ class _AuthScreenState extends State<AuthScreen> {
             _obscureConfirmPassword
                 ? Icons.visibility_outlined
                 : Icons.visibility_off_outlined,
-            color: _muted,
+            color: colors.onSurfaceVariant,
           ),
         ),
       ),
@@ -742,59 +805,69 @@ class _AuthScreenState extends State<AuthScreen> {
     required IconData icon,
     Widget? suffix,
   }) {
+    final colors = Theme.of(context).colorScheme;
+
     return InputDecoration(
       labelText: label,
       hintText: hint,
-      prefixIcon: Icon(icon, color: _primary),
+      prefixIcon: Icon(icon, color: colors.primary),
       suffixIcon: suffix,
       filled: true,
-      fillColor: const Color(0xFFFFFAFA),
+      fillColor: colors.surfaceContainerHighest.withValues(alpha: 0.55),
       contentPadding: const EdgeInsets.symmetric(
         horizontal: 15,
         vertical: 17,
       ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
-        borderSide: const BorderSide(color: _border),
+        borderSide: BorderSide(color: colors.outlineVariant),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
-        borderSide: const BorderSide(color: _border),
+        borderSide: BorderSide(color: colors.outlineVariant),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
-        borderSide: const BorderSide(color: _primary, width: 1.6),
+        borderSide: BorderSide(color: colors.primary, width: 1.6),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(13),
-        borderSide: const BorderSide(color: Colors.redAccent),
+        borderSide: BorderSide(color: colors.error),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(13),
+        borderSide: BorderSide(color: colors.error, width: 1.6),
       ),
     );
   }
 
   Widget _buildErrorBanner(String message) {
+    final colors = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF0EF),
+        color: colors.errorContainer,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFFD5D1)),
+        border: Border.all(
+          color: colors.error.withValues(alpha: 0.35),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
+          Icon(
             Icons.error_outline_rounded,
-            color: Color(0xFFB42318),
+            color: colors.onErrorContainer,
             size: 20,
           ),
           const SizedBox(width: 9),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color: Color(0xFF912018),
-                fontSize: 12,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.onErrorContainer,
                 height: 1.4,
               ),
             ),

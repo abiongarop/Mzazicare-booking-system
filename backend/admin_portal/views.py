@@ -1,4 +1,4 @@
-
+from caregivers.views import sync_caregiver_after_commit
 from django.db import transaction
 from django.utils import timezone
 
@@ -100,7 +100,9 @@ class AdminCaregiverListView(AdminAPIView):
 
 
 
+
 class AdminCaregiverVerificationView(AdminAPIView):
+
     def patch(self, request, pk):
         self.get_admin_account(request)
 
@@ -115,11 +117,13 @@ class AdminCaregiverVerificationView(AdminAPIView):
 
         if not isinstance(value, bool):
             raise ValidationError({
-                "is_verified": "This field must be true or false."
+                "is_verified": (
+                    "This field must be true or false."
+                )
             })
 
-        # Update PostgreSQL first.
         with transaction.atomic():
+
             caregiver = Caregiver.objects.select_for_update().get(
                 pk=pk
             )
@@ -130,20 +134,25 @@ class AdminCaregiverVerificationView(AdminAPIView):
                 update_fields=["is_verified", "updated_at"]
             )
 
-        # Synchronize Neo4j after the PostgreSQL transaction commits.
+            # Synchronize Neo4j after PostgreSQL commits.
+            transaction.on_commit(
+                lambda caregiver_id=caregiver.pk:
+                    sync_caregiver_after_commit(caregiver_id)
+            )
+
+        # Retrieve the updated caregiver for the response.
         caregiver = (
             Caregiver.objects
-            .select_related("location")
+            .select_related("account", "location")
             .prefetch_related("skills", "services")
             .get(pk=pk)
         )
-
-        sync_caregiver_to_neo4j(caregiver)
 
         return Response(
             AdminCaregiverSerializer(caregiver).data,
             status=status.HTTP_200_OK,
         )
+
 
 
 

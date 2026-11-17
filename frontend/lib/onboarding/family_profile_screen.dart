@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
-import '../recommendations/recommendations_screen.dart';
-import '../theme/app_theme.dart';
+import '../dashboards/family_dashboard_screen.dart';
 
 class FamilyProfileScreen extends StatefulWidget {
   const FamilyProfileScreen({super.key});
@@ -47,6 +46,9 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
   bool _loading = true;
   bool _saving = false;
 
+  ThemeData get _theme => Theme.of(context);
+  ColorScheme get _colors => _theme.colorScheme;
+
   @override
   void initState() {
     super.initState();
@@ -72,12 +74,15 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
   List<String> _readNames(dynamic value) {
     if (value is! List) return [];
 
-    return value.map((item) {
-      if (item is Map) {
-        return (item['name'] ?? '').toString();
-      }
-      return item.toString();
-    }).where((name) => name.trim().isNotEmpty).toList();
+    return value
+        .map((item) {
+          if (item is Map) {
+            return (item['name'] ?? '').toString();
+          }
+          return item.toString();
+        })
+        .where((name) => name.trim().isNotEmpty)
+        .toList();
   }
 
   Future<void> _loadProfile() async {
@@ -117,60 +122,62 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (_saving || !_formKey.currentState!.validate()) return;
 
-    if (_selectedServices.isEmpty) {
-      _showMessage('Select at least one care service.');
-      return;
-    }
-
-    setState(() => _saving = true);
-
-    try {
-      final payload = {
-        'contact_phone': _phoneController.text.trim(),
-        'location': _locationController.text.trim(),
-        'care_recipient_age': int.parse(_ageController.text.trim()),
-        'care_recipient_gender': _gender ?? '',
-        'required_services': _selectedServices.toList(),
-        'required_skills': _selectedSkills.toList(),
-        'care_level': _careLevel ?? '',
-        'care_arrangement': _arrangement ?? '',
-        'notes': _notesController.text.trim(),
-      };
-
-      await ApiService.saveFamilyCareProfile(payload);
-
-      if (!mounted) return;
-
-      _showMessage('Profile saved. Updating your recommendations...');
-
-      await ApiService.getFamilyRecommendations();
-
-      if (!mounted) return;
-
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const RecommendationsScreen(
-            refreshOnOpen: true,
-          ),
-        ),
-      );
-    } catch (e) {
-      if (mounted) {
-        _showMessage('Could not save/update recommendations: $e');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _saving = false);
-      }
-    }
+  if (_selectedServices.isEmpty) {
+    _showMessage('Select at least one care service.');
+    return;
   }
 
+  setState(() => _saving = true);
+
+  try {
+    final payload = {
+      'contact_phone': _phoneController.text.trim(),
+      'location': _locationController.text.trim(),
+      'care_recipient_age': int.parse(_ageController.text.trim()),
+      'care_recipient_gender': _gender ?? '',
+      'required_services': _selectedServices.toList(),
+      'required_skills': _selectedSkills.toList(),
+      'care_level': _careLevel ?? '',
+      'care_arrangement': _arrangement ?? '',
+      'notes': _notesController.text.trim(),
+    };
+
+    // Save the family care profile.
+    await ApiService.saveFamilyCareProfile(payload);
+
+    if (!mounted) return;
+
+    _showMessage('Your family care profile has been saved successfully.');
+
+    // Navigate to the Family Dashboard.
+    // The dashboard will load the recommendations.
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute<void>(
+        builder: (_) => const FamilyDashboardScreen(),
+      ),
+      (route) => false,
+    );
+  } catch (e) {
+    if (mounted) {
+      _showMessage('Could not save your family profile: $e');
+    }
+  } finally {
+    if (mounted) {
+      setState(() => _saving = false);
+    }
+  }
+}
+
   void _showMessage(String message) {
+    if (!mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -179,10 +186,9 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
       padding: const EdgeInsets.only(top: 22, bottom: 10),
       child: Text(
         title,
-        style: const TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.bold,
-          color: MzaziCareColors.text,
+        style: _theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: _colors.onSurface,
         ),
       ),
     );
@@ -199,11 +205,14 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
       padding: const EdgeInsets.only(bottom: 14),
       child: TextFormField(
         controller: controller,
+        enabled: !_saving,
         keyboardType: keyboardType,
         maxLines: maxLines,
+        minLines: maxLines > 1 ? 3 : 1,
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
+          alignLabelWithHint: maxLines > 1,
         ),
         validator: (value) {
           final text = value?.trim() ?? '';
@@ -241,19 +250,27 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
         ...options.map(
           (option) => CheckboxListTile(
             contentPadding: EdgeInsets.zero,
-            title: Text(option),
+            title: Text(
+              option,
+              style: _theme.textTheme.bodyLarge?.copyWith(
+                color: _colors.onSurface,
+              ),
+            ),
             value: selected.contains(option),
-            activeColor: MzaziCareColors.primary,
-            checkColor: Colors.white,
-            onChanged: (checked) {
-              setState(() {
-                if (checked == true) {
-                  selected.add(option);
-                } else {
-                  selected.remove(option);
-                }
-              });
-            },
+            activeColor: _colors.primary,
+            checkColor: _colors.onPrimary,
+            controlAffinity: ListTileControlAffinity.leading,
+            onChanged: _saving
+                ? null
+                : (checked) {
+                    setState(() {
+                      if (checked == true) {
+                        selected.add(option);
+                      } else {
+                        selected.remove(option);
+                      }
+                    });
+                  },
           ),
         ),
       ],
@@ -266,13 +283,22 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
     required List<DropdownMenuItem<String>> items,
     required ValueChanged<String?> onChanged,
   }) {
+    final validValue = items.any((item) => item.value == value)
+        ? value
+        : null;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: DropdownButtonFormField<String>(
-        initialValue: value,
+        initialValue: validValue,
+        isExpanded: true,
         decoration: InputDecoration(labelText: label),
+        dropdownColor: _colors.surface,
+        style: _theme.textTheme.bodyLarge?.copyWith(
+          color: _colors.onSurface,
+        ),
         items: items,
-        onChanged: onChanged,
+        onChanged: _saving ? null : onChanged,
       ),
     );
   }
@@ -280,7 +306,7 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: MzaziCareColors.background,
+      backgroundColor: _theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Family Care Profile'),
       ),
@@ -294,9 +320,12 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
                   vertical: 20,
                 ),
                 children: [
-                  const Text(
+                  Text(
                     'Tell us about the care your loved one needs.',
-                    style: TextStyle(fontSize: 15, height: 1.5),
+                    style: _theme.textTheme.bodyLarge?.copyWith(
+                      height: 1.5,
+                      color: _colors.onSurfaceVariant,
+                    ),
                   ),
 
                   _sectionTitle('Contact and location'),
@@ -421,11 +450,11 @@ class _FamilyProfileScreenState extends State<FamilyProfileScreen> {
                     child: ElevatedButton(
                       onPressed: _saving ? null : _saveProfile,
                       child: _saving
-                          ? const SizedBox(
+                          ? SizedBox(
                               height: 22,
                               width: 22,
                               child: CircularProgressIndicator(
-                                color: Colors.white,
+                                color: _colors.onPrimary,
                                 strokeWidth: 2,
                               ),
                             )

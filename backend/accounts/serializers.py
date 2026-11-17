@@ -12,6 +12,7 @@ class MzaziCareProfileSerializer(serializers.ModelSerializer):
         model = MzaziCareProfile
 
         fields = [
+            "id",  # Added: required for message alignment
             "firebase_uid",
             "email",
             "full_name",
@@ -24,6 +25,7 @@ class MzaziCareProfileSerializer(serializers.ModelSerializer):
         ]
 
         read_only_fields = [
+            "id",
             "firebase_uid",
             "email",
             "role",

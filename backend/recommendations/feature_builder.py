@@ -14,9 +14,7 @@ FEATURE_COLUMNS = [
 
 
 def normalise(value):
-    """Normalize text for consistent comparisons."""
-
-    return " ".join(
+    text = " ".join(
         str(value or "")
         .strip()
         .lower()
@@ -25,9 +23,20 @@ def normalise(value):
         .split()
     )
 
+    aliases = {
+        "household assistance": "housekeeping",
+    }
+
+    return aliases.get(text, text)
+
 
 def _get_item_value(item, possible_keys):
     """Read a value from a dictionary or model object."""
+
+    # Plain strings and numbers should be handled directly
+    # by the calling functions, not through object attributes.
+    if isinstance(item, (str, int, float)):
+        return None
 
     if isinstance(item, dict):
         for key in possible_keys:
@@ -39,7 +48,7 @@ def _get_item_value(item, possible_keys):
     for key in possible_keys:
         value = getattr(item, key, None)
 
-        if value is not None:
+        if value is not None and not callable(value):
             return value
 
     return None
@@ -218,9 +227,15 @@ def build_candidate_features(candidate):
         candidate.get("experience_years") or 0
     )
 
-    rating = float(
-        candidate.get("rating") or 0
-    )
+    raw_rating = candidate.get("rating")
+
+    has_rating = raw_rating is not None and float(raw_rating) > 0
+
+# Value used by the Random Forest
+    rating = float(raw_rating) if has_rating else 4.0
+
+# Value returned to the frontend
+    display_rating = float(raw_rating) if has_rating else None
 
     min_experience = float(
         os.getenv(
@@ -282,7 +297,7 @@ def build_candidate_features(candidate):
         "age": candidate.get("age"),
         "gender": candidate.get("gender"),
         "experience_years": experience_years,
-        "rating": rating,
+        "rating": display_rating,
         "availability": candidate.get("availability"),
         "is_verified": bool(
             candidate.get("is_verified")

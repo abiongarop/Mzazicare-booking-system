@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import '../recommendations/recommendations_screen.dart';
@@ -16,10 +17,19 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
   String? _error;
   List<Map<String, dynamic>> _schedules = [];
 
+  ColorScheme get _colors => Theme.of(context).colorScheme;
+  TextTheme get _text => Theme.of(context).textTheme;
+
   @override
   void initState() {
     super.initState();
     _loadSchedules();
+  }
+
+  Map<String, dynamic> _toMap(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) return Map<String, dynamic>.from(value);
+    return {};
   }
 
   Future<void> _loadSchedules() async {
@@ -32,20 +42,19 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
 
     try {
       final response = await ApiService.getCareSchedules();
+      final responseMap = _toMap(response);
 
-      final dynamic data = response['results'] ??
-          response['schedules'] ??
-          response['care_schedules'] ??
-          response['data'];
+      final dynamic data = responseMap['results'] ??
+          responseMap['schedules'] ??
+          responseMap['care_schedules'] ??
+          responseMap['data'];
 
-      List<Map<String, dynamic>> schedules = [];
-
-      if (data is List) {
-        schedules = data
-            .whereType<Map>()
-            .map((item) => Map<String, dynamic>.from(item))
-            .toList();
-      }
+      final schedules = data is List
+          ? data
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList()
+          : <Map<String, dynamic>>[];
 
       if (!mounted) return;
 
@@ -68,8 +77,8 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => const RecommendationsScreen(
-  refreshOnOpen: true,
-),
+          refreshOnOpen: true,
+        ),
       ),
     );
 
@@ -118,19 +127,38 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
   }
 
   Color _statusColor(String status) {
-    switch (status.toLowerCase()) {
+    switch (status.toLowerCase().replaceAll(' ', '_')) {
       case 'confirmed':
-        return Colors.green.shade700;
+      case 'accepted':
+        return Colors.green;
       case 'completed':
-        return Colors.blue.shade700;
+        return Colors.blue;
       case 'cancelled':
-        return Colors.red.shade700;
+      case 'declined':
+      case 'rejected':
+        return _colors.error;
       case 'in_progress':
-      case 'in progress':
+        return _colors.tertiary;
       case 'pending':
       default:
-        return Colors.orange.shade800;
+        return Colors.orange;
     }
+  }
+
+  String _servicesText(dynamic services) {
+    if (services is! List) return '';
+
+    return services.map((item) {
+      if (item is Map) {
+        return (item['name'] ??
+                item['service_name'] ??
+                item['id'] ??
+                'Service')
+            .toString();
+      }
+
+      return item.toString();
+    }).join(', ');
   }
 
   Widget _buildScheduleCard(Map<String, dynamic> schedule) {
@@ -154,26 +182,33 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
 
     final caregiver = schedule['caregiver'];
 
-    String caregiverName = 'Caregiver not assigned';
+String caregiverName = 'Caregiver not assigned';
 
-    if (caregiver is Map) {
-      caregiverName = [
-        caregiver['full_name'],
-        caregiver['name'],
-        caregiver['display_name'],
-      ]
-          .where((value) =>
-              value != null && value.toString().trim().isNotEmpty)
-          .join(' ');
+if (caregiver is Map) {
+  final name = [
+    caregiver['full_name'],
+    caregiver['name'],
+    caregiver['display_name'],
+  ]
+      .where((value) =>
+          value != null && value.toString().trim().isNotEmpty)
+      .join(' ')
+      .trim();
 
-      if (caregiverName.trim().isEmpty) {
-        caregiverName = 'Caregiver not assigned';
-      }
-    } else if (caregiver is String && caregiver.isNotEmpty) {
-      caregiverName = caregiver;
-    } else if (schedule['caregiver_name'] != null) {
-      caregiverName = schedule['caregiver_name'].toString();
-    }
+  caregiverName = name.isNotEmpty
+      ? name
+      : (schedule['caregiver_id']?.toString() ??
+          'Caregiver not assigned');
+} else if (caregiver is String && caregiver.trim().isNotEmpty) {
+  caregiverName = caregiver;
+} else if (caregiver is num) {
+  caregiverName =
+      schedule['caregiver_id']?.toString() ??
+      'Caregiver #${caregiver.toInt()}';
+} else if (schedule['caregiver_name'] != null &&
+    schedule['caregiver_name'].toString().trim().isNotEmpty) {
+  caregiverName = schedule['caregiver_name'].toString();
+}
 
     final arrangement = _firstValue(
       schedule,
@@ -181,22 +216,9 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
       fallback: 'one_time',
     );
 
-    final services = schedule['services'];
-
-    final serviceText = services is List
-        ? services.map((item) {
-            if (item is Map) {
-              return (item['name'] ??
-                      item['service_name'] ??
-                      item['id'])
-                  .toString();
-            }
-
-            return item.toString();
-          }).join(', ')
-        : '';
-
+    final serviceText = _servicesText(schedule['services']);
     final notes = schedule['family_notes'];
+    final statusColor = _statusColor(status);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 13),
@@ -212,12 +234,12 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
                   height: 48,
                   width: 48,
                   decoration: BoxDecoration(
-                    color: MzaziCareColors.surfaceSoft,
+                    color: _colors.primaryContainer,
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.calendar_month_outlined,
-                    color: MzaziCareColors.primaryDark,
+                    color: _colors.onPrimaryContainer,
                   ),
                 ),
                 const SizedBox(width: 13),
@@ -227,22 +249,23 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
                     children: [
                       Text(
                         caregiverName,
-                        style: Theme.of(context).textTheme.titleMedium,
+                        style: _text.titleMedium?.copyWith(
+                          color: _colors.onSurface,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         _formatDateTime(start),
-                        style: const TextStyle(
-                          color: MzaziCareColors.text,
+                        style: _text.bodyMedium?.copyWith(
+                          color: _colors.onSurface,
                         ),
                       ),
                       if (end.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(
                           'Ends: ${_formatDateTime(end)}',
-                          style: const TextStyle(
-                            color: MzaziCareColors.textMuted,
-                            fontSize: 13,
+                          style: _text.bodySmall?.copyWith(
+                            color: _colors.onSurfaceVariant,
                           ),
                         ),
                       ],
@@ -257,15 +280,14 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
                       vertical: 7,
                     ),
                     decoration: BoxDecoration(
-                      color: _statusColor(status)
-                          .withValues(alpha: 0.10),
+                      color: statusColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       status.replaceAll('_', ' ').toUpperCase(),
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: _statusColor(status),
+                        color: statusColor,
                         fontWeight: FontWeight.w700,
                         fontSize: 10,
                       ),
@@ -307,24 +329,24 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
           Icon(
             icon,
             size: 18,
-            color: MzaziCareColors.primaryDark,
+            color: _colors.primary,
           ),
           const SizedBox(width: 10),
           SizedBox(
             width: 105,
             child: Text(
               '$label:',
-              style: const TextStyle(
+              style: _text.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: MzaziCareColors.text,
+                color: _colors.onSurface,
               ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                color: MzaziCareColors.textMuted,
+              style: _text.bodySmall?.copyWith(
+                color: _colors.onSurfaceVariant,
               ),
             ),
           ),
@@ -338,10 +360,10 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(23),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           colors: [
-            MzaziCareColors.primaryDark,
-            MzaziCareColors.primary,
+            _colors.primary,
+            _colors.primaryContainer,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -351,25 +373,25 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
+          Icon(
             Icons.health_and_safety_outlined,
-            color: Colors.white,
+            color: _colors.onPrimary,
             size: 34,
           ),
           const SizedBox(height: 13),
-          const Text(
+          Text(
             'Coordinate care with confidence',
             style: TextStyle(
-              color: Colors.white,
+              color: _colors.onPrimary,
               fontSize: 21,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Review your scheduled visits or find a caregiver who matches your family’s needs.',
             style: TextStyle(
-              color: Colors.white,
+              color: _colors.onPrimary.withValues(alpha: 0.9),
               height: 1.5,
             ),
           ),
@@ -381,8 +403,8 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
               icon: const Icon(Icons.search),
               label: const Text('Find a caregiver'),
               style: FilledButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: MzaziCareColors.primaryDark,
+                backgroundColor: _colors.surface,
+                foregroundColor: _colors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 15),
               ),
             ),
@@ -398,22 +420,24 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
         padding: const EdgeInsets.all(25),
         child: Column(
           children: [
-            const Icon(
+            Icon(
               Icons.event_available_outlined,
               size: 44,
-              color: MzaziCareColors.primaryDark,
+              color: _colors.primary,
             ),
             const SizedBox(height: 13),
             Text(
               'No bookings yet',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: _text.titleMedium?.copyWith(
+                color: _colors.onSurface,
+              ),
             ),
             const SizedBox(height: 7),
-            const Text(
+            Text(
               'Find a caregiver to arrange your first care visit.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: MzaziCareColors.textMuted,
+              style: _text.bodyMedium?.copyWith(
+                color: _colors.onSurfaceVariant,
                 height: 1.5,
               ),
             ),
@@ -434,17 +458,17 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const Icon(
+            Icon(
               Icons.cloud_off_outlined,
               size: 40,
-              color: MzaziCareColors.primaryDark,
+              color: _colors.primary,
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'We could not load your bookings.',
-              style: TextStyle(
+              style: _text.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: MzaziCareColors.text,
+                color: _colors.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -453,9 +477,8 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: MzaziCareColors.textMuted,
-                fontSize: 12,
+              style: _text.bodySmall?.copyWith(
+                color: _colors.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 12),
@@ -473,7 +496,7 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: MzaziCareColors.background,
+      backgroundColor: _colors.surface,
       appBar: AppBar(
         title: const Text('Your care schedule'),
         actions: [
@@ -500,9 +523,7 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
             if (_isLoading)
               const Padding(
                 padding: EdgeInsets.all(32),
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
+                child: Center(child: CircularProgressIndicator()),
               )
             else if (_error != null)
               _errorView()
@@ -511,8 +532,8 @@ class _CareScheduleScreenState extends State<CareScheduleScreen> {
             else ...[
               Text(
                 '${_schedules.length} booking${_schedules.length == 1 ? '' : 's'}',
-                style: const TextStyle(
-                  color: MzaziCareColors.textMuted,
+                style: _text.bodySmall?.copyWith(
+                  color: _colors.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 12),

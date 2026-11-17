@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
@@ -32,6 +33,9 @@ class _BookingScreenState extends State<BookingScreen> {
 
   List<Map<String, dynamic>> _availableServices = [];
   final Set<int> _selectedServiceIds = {};
+
+  ColorScheme get _colors => Theme.of(context).colorScheme;
+  TextTheme get _text => Theme.of(context).textTheme;
 
   String get _caregiverName {
     final account = widget.caregiver['account'];
@@ -95,6 +99,8 @@ class _BookingScreenState extends State<BookingScreen> {
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
+            final dialogColors = Theme.of(context).colorScheme;
+
             return AlertDialog(
               title: const Text('Choose care services'),
               content: SizedBox(
@@ -118,7 +124,7 @@ class _BookingScreenState extends State<BookingScreen> {
                       title: Text(name),
                       controlAffinity:
                           ListTileControlAffinity.leading,
-                      activeColor: MzaziCareColors.primary,
+                      activeColor: dialogColors.primary,
                       onChanged: (checked) {
                         setDialogState(() {
                           if (checked == true) {
@@ -337,9 +343,9 @@ class _BookingScreenState extends State<BookingScreen> {
       padding: const EdgeInsets.only(bottom: 9),
       child: Text(
         text,
-        style: const TextStyle(
+        style: _text.titleSmall?.copyWith(
           fontWeight: FontWeight.w600,
-          color: MzaziCareColors.text,
+          color: _colors.onSurface,
         ),
       ),
     );
@@ -375,10 +381,10 @@ class _BookingScreenState extends State<BookingScreen> {
           if (_loadingServices)
             const LinearProgressIndicator()
           else if (_selectedServiceNames.isEmpty)
-            const Text(
+            Text(
               'No services selected',
-              style: TextStyle(
-                color: MzaziCareColors.textMuted,
+              style: _text.bodyMedium?.copyWith(
+                color: _colors.onSurfaceVariant,
               ),
             )
           else
@@ -388,8 +394,11 @@ class _BookingScreenState extends State<BookingScreen> {
               children: _selectedServiceNames.map((name) {
                 return Chip(
                   label: Text(name),
-                  backgroundColor: MzaziCareColors.surfaceSoft,
-                  deleteIconColor: MzaziCareColors.primaryDark,
+                  backgroundColor: _colors.primaryContainer,
+                  labelStyle: TextStyle(
+                    color: _colors.onPrimaryContainer,
+                  ),
+                  deleteIconColor: _colors.primary,
                   onDeleted: _submitting
                       ? null
                       : () {
@@ -432,7 +441,7 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: MzaziCareColors.background,
+      backgroundColor: _colors.surface,
       appBar: AppBar(
         title: const Text('Book caregiver'),
       ),
@@ -446,10 +455,10 @@ class _BookingScreenState extends State<BookingScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
+                  gradient: LinearGradient(
                     colors: [
-                      MzaziCareColors.primaryDark,
-                      MzaziCareColors.primary,
+                      _colors.primary,
+                      _colors.primaryContainer,
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -458,26 +467,26 @@ class _BookingScreenState extends State<BookingScreen> {
                 ),
                 child: Column(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.volunteer_activism_rounded,
                       size: 48,
-                      color: Colors.white,
+                      color: _colors.onPrimary,
                     ),
                     const SizedBox(height: 12),
                     Text(
                       _caregiverName,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 21,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: _colors.onPrimary,
                       ),
                     ),
                     const SizedBox(height: 5),
-                    const Text(
+                    Text(
                       'Selected caregiver',
                       style: TextStyle(
-                        color: Colors.white70,
+                        color: _colors.onPrimary.withValues(alpha: 0.85),
                       ),
                     ),
                   ],

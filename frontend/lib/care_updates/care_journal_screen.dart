@@ -78,6 +78,8 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
+
     setState(() {
       _loading = true;
       _error = null;
@@ -115,7 +117,6 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-
       setState(() {
         _error = e.toString();
         _loading = false;
@@ -147,6 +148,7 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
         schedule['client'];
 
     String familyName = 'Family';
+
     if (family is Map) {
       familyName = (family['full_name'] ??
               family['name'] ??
@@ -160,7 +162,8 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
     final person = client?.toString().trim();
     final date = start == null ? 'Date unavailable' : _formatDate(start);
 
-    return 'Booking #${id ?? '—'} • ${person?.isNotEmpty == true ? person : familyName} • $date';
+    return 'Booking #${id ?? '—'} • '
+        '${person?.isNotEmpty == true ? person : familyName} • $date';
   }
 
   String _formatDate(dynamic value) {
@@ -234,11 +237,8 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
       await _loadData();
     } catch (e) {
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not save journal entry: $e'),
-        ),
+        SnackBar(content: Text('Could not save journal entry: $e')),
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -246,6 +246,9 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
   }
 
   Widget _journalForm() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     final validSchedules = _schedules
         .where((schedule) => _scheduleId(schedule) != null)
         .toList();
@@ -260,20 +263,21 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
             children: [
               Text(
                 'New journal entry',
-                style: Theme.of(context).textTheme.titleMedium,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 7),
-              const Text(
+              Text(
                 'Record what happened during a care visit. These notes help families stay informed.',
-                style: TextStyle(
-                  color: MzaziCareColors.textMuted,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colors.onSurfaceVariant,
                   height: 1.5,
-                  fontSize: 12,
                 ),
               ),
               const SizedBox(height: 18),
               DropdownButtonFormField<int>(
-                value: validSchedules.any(
+                initialValue: validSchedules.any(
                   (item) => _scheduleId(item) == _selectedScheduleId,
                 )
                     ? _selectedScheduleId
@@ -302,7 +306,7 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
               ),
               const SizedBox(height: 15),
               DropdownButtonFormField<String>(
-                value: _updateType,
+                initialValue: _updateType,
                 decoration: const InputDecoration(
                   labelText: 'Entry type',
                   prefixIcon: Icon(Icons.category_outlined),
@@ -373,18 +377,17 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
               const SizedBox(height: 10),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text(
+                title: Text(
                   'Follow-up required',
-                  style: TextStyle(
+                  style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w600,
-                    fontSize: 14,
                   ),
                 ),
-                subtitle: const Text(
+                subtitle: Text(
                   'Flag this entry if the family or care team needs to take further action.',
-                  style: TextStyle(fontSize: 11),
+                  style: theme.textTheme.bodySmall?.copyWith(fontSize: 11),
                 ),
-                activeThumbColor: MzaziCareColors.primary,
+                activeThumbColor: colors.primary,
                 value: _followUpRequired,
                 onChanged: (value) {
                   setState(() => _followUpRequired = value);
@@ -401,7 +404,6 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
                           width: 17,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
                           ),
                         )
                       : const Icon(Icons.save_outlined),
@@ -421,6 +423,9 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
   }
 
   Widget _entryCard(Map<String, dynamic> entry) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     final title = (entry['title'] ?? 'Care update').toString();
     final body = (entry['body'] ?? '').toString();
     final created = entry['created_at'];
@@ -442,9 +447,8 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
                 Expanded(
                   child: Text(
                     title,
-                    style: const TextStyle(
+                    style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: MzaziCareColors.text,
                     ),
                   ),
                 ),
@@ -455,14 +459,13 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
                       vertical: 5,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.12),
+                      color: colors.tertiaryContainer,
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    child: const Text(
+                    child: Text(
                       'FOLLOW-UP',
-                      style: TextStyle(
-                        color: Colors.deepOrange,
-                        fontSize: 9,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colors.onTertiaryContainer,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -472,26 +475,21 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
             const SizedBox(height: 5),
             Text(
               '$type • ${_formatDate(created)}',
-              style: const TextStyle(
-                color: MzaziCareColors.textMuted,
-                fontSize: 11,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
               ),
             ),
-            const Divider(height: 20),
+            Divider(height: 20, color: colors.outlineVariant),
             Text(
               body,
-              style: const TextStyle(
-                color: MzaziCareColors.text,
-                height: 1.5,
-              ),
+              style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
             ),
             if (activities is List && activities.isNotEmpty) ...[
               const SizedBox(height: 13),
-              const Text(
+              Text(
                 'Activities completed',
-                style: TextStyle(
+                style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  fontSize: 12,
                 ),
               ),
               const SizedBox(height: 6),
@@ -506,16 +504,16 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.check_circle_outline,
                         size: 15,
-                        color: MzaziCareColors.primaryDark,
+                        color: colors.primary,
                       ),
                       const SizedBox(width: 7),
                       Expanded(
                         child: Text(
                           text,
-                          style: const TextStyle(fontSize: 12),
+                          style: theme.textTheme.bodySmall,
                         ),
                       ),
                     ],
@@ -530,26 +528,31 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
   }
 
   Widget _emptyEntries() {
-    return const Padding(
-      padding: EdgeInsets.all(22),
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.all(22),
       child: Column(
         children: [
           Icon(
             Icons.menu_book_outlined,
             size: 42,
-            color: MzaziCareColors.primaryDark,
+            color: colors.primary,
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Text(
             'No journal entries yet',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          SizedBox(height: 6),
+          const SizedBox(height: 6),
           Text(
             'Your saved care visit notes will appear here.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: MzaziCareColors.textMuted,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colors.onSurfaceVariant,
               height: 1.5,
             ),
           ),
@@ -558,14 +561,57 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
     );
   }
 
+  Widget _errorState() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.cloud_off_outlined,
+              size: 40,
+              color: colors.primary,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Could not load your journal data.',
+              style: theme.textTheme.titleSmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _error ?? 'An unexpected error occurred.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: _loadData,
+              child: const Text('Try again'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     final hasBookableSchedules = _schedules.any(
       (item) => _scheduleId(item) != null,
     );
 
     return Scaffold(
-      backgroundColor: MzaziCareColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Care Journal'),
         actions: [
@@ -579,34 +625,7 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.cloud_off_outlined,
-                          size: 40,
-                          color: MzaziCareColors.primaryDark,
-                        ),
-                        const SizedBox(height: 10),
-                        const Text('Could not load your journal data.'),
-                        const SizedBox(height: 8),
-                        Text(
-                          _error!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        const SizedBox(height: 12),
-                        OutlinedButton(
-                          onPressed: _loadData,
-                          child: const Text('Try again'),
-                        ),
-                      ],
-                    ),
-                  ),
-                )
+              ? _errorState()
               : RefreshIndicator(
                   onRefresh: _loadData,
                   child: ListView(
@@ -616,36 +635,45 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
+                          gradient: LinearGradient(
                             colors: [
-                              MzaziCareColors.primaryDark,
-                              MzaziCareColors.primary,
-                            ],
+                              theme.brightness == Brightness.dark
+                                  ? colors.primaryContainer
+                                  : const Color(0xFF593847),
+                              theme.brightness == Brightness.dark
+                                  ? colors.secondaryContainer
+                                  : const Color(0xFFA95570),
+                          ],
                           ),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Column(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Icon(
                               Icons.menu_book_outlined,
-                              color: Colors.white,
+                              color: theme.brightness == Brightness.dark
+                                  ? colors.onPrimaryContainer
+                                  : Colors.white,
                               size: 30,
                             ),
-                            SizedBox(height: 12),
+                            const SizedBox(height: 12),
                             Text(
                               'Document every visit',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 21,
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                color: theme.brightness == Brightness.dark
+                                    ? colors.onPrimaryContainer
+                                    : Colors.white,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            SizedBox(height: 7),
+                            const SizedBox(height: 7),
                             Text(
                               'Keep families informed by recording care activities, observations and follow-up needs.',
-                              style: TextStyle(
-                                color: Colors.white,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.brightness == Brightness.dark
+                                    ? colors.onPrimaryContainer
+                                    : Colors.white,
                                 height: 1.5,
                               ),
                             ),
@@ -656,13 +684,13 @@ class _CareJournalScreenState extends State<CareJournalScreen> {
                       if (hasBookableSchedules)
                         _journalForm()
                       else
-                        const Card(
+                        Card(
                           child: Padding(
-                            padding: EdgeInsets.all(18),
+                            padding: const EdgeInsets.all(18),
                             child: Text(
                               'You need an assigned care booking before you can create a journal entry.',
-                              style: TextStyle(
-                                color: MzaziCareColors.textMuted,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: colors.onSurfaceVariant,
                                 height: 1.5,
                               ),
                             ),

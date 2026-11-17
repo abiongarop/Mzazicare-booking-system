@@ -4,15 +4,20 @@ import os
 from knowledge_graph.connection import get_neo4j_driver
 
 
+# ============================================================
+# FAMILY PROFILE SYNCHRONIZATION
+# ============================================================
+
 def sync_family_profile_to_neo4j(profile):
     """
     Synchronise a saved Django FamilyCareProfile to Neo4j.
 
-    Django remains the source of truth. Existing relationships are
-    replaced so removed services and skills do not remain in Neo4j.
+    Django/PostgreSQL remains the source of truth.
+    Existing relationships are replaced to prevent stale
+    services and skills from remaining in Neo4j.
     """
+
     database = os.getenv("NEO4J_DATABASE", "neo4j")
-    driver = get_neo4j_driver()
 
     record = {
         "profile_id": str(profile.pk),
@@ -29,16 +34,21 @@ def sync_family_profile_to_neo4j(profile):
         ),
     }
 
+    driver = get_neo4j_driver()
+
     try:
         driver.verify_connectivity()
 
         with driver.session(database=database) as session:
             session.execute_write(_write_family_profile, record)
+
     finally:
         driver.close()
 
 
 def _write_family_profile(tx, record):
+    """Write family profile and relationships in one transaction."""
+
     tx.run(
         """
         MERGE (p:FamilyCareProfile {profile_id: $profile_id})
@@ -51,7 +61,7 @@ def _write_family_profile(tx, record):
         record,
     ).consume()
 
-    # Replace the location relationship.
+    # Replace location relationship.
     tx.run(
         """
         MATCH (p:FamilyCareProfile {profile_id: $profile_id})
@@ -114,6 +124,10 @@ def _write_family_profile(tx, record):
         ).consume()
 
 
+# ============================================================
+# CAREGIVER SYNCHRONIZATION
+# ============================================================
+
 def sync_caregiver_to_neo4j(caregiver):
     """
     Synchronise a Django Caregiver record to Neo4j.
@@ -122,25 +136,38 @@ def sync_caregiver_to_neo4j(caregiver):
 
     The function:
     - Creates or updates the Caregiver node.
-    - Synchronises profile attributes and verification status.
-    - Replaces the caregiver's location relationship.
-    - Replaces the caregiver's service relationships.
-    - Replaces the caregiver's skill relationships.
+    - Synchronises caregiver attributes.
+    - Synchronises verification status.
+    - Replaces the location relationship.
+    - Replaces service relationships.
+    - Replaces skill relationships.
 
-    It is safe to call this function more than once.
+    Uses caregiver_id as the unique graph identifier.
+
+    Safe to call repeatedly.
     """
 
-    database = os.getenv("NEO4J_DATABASE", "neo4j")
-    driver = get_neo4j_driver()
+    # Validate the identifier before opening a Neo4j connection.
+    caregiver_id = str(
+        getattr(caregiver, "caregiver_id", "") or ""
+    ).strip()
 
-    # Read related Django data.
+    if not caregiver_id:
+        raise ValueError(
+            "Caregiver must have a valid caregiver_id."
+        )
+
+    database = os.getenv("NEO4J_DATABASE", "neo4j")
+
+    # The model defines location as a ForeignKey to Location.
     location_name = ""
 
     if caregiver.location:
         location_name = (
-            getattr(caregiver.location, "name", "") or ""
+            caregiver.location.name or ""
         ).strip()
 
+    # Read ManyToMany relationships.
     services = list(
         caregiver.services.values_list("name", flat=True)
     )
@@ -149,11 +176,16 @@ def sync_caregiver_to_neo4j(caregiver):
         caregiver.skills.values_list("name", flat=True)
     )
 
+    # Prepare data for Neo4j.
     record = {
-        "caregiver_id": str(caregiver.caregiver_id).strip(),
+        "caregiver_id": caregiver_id,
         "age": int(caregiver.age or 0),
         "gender": caregiver.gender or "",
-        "experience_years": int(caregiver.experience_years or 0),
+        "experience_years": int(
+            caregiver.experience_years or 0
+        ),
+        "qualifications": caregiver.qualifications or "",
+        "bio": caregiver.bio or "",
         "rating": float(caregiver.rating or 0),
         "availability": caregiver.availability or "",
         "is_verified": bool(caregiver.is_verified),
@@ -162,14 +194,16 @@ def sync_caregiver_to_neo4j(caregiver):
         "skills": skills,
     }
 
-    if not record["caregiver_id"]:
-        raise ValueError("Caregiver must have a valid caregiver_id.")
+    driver = get_neo4j_driver()
 
     try:
         driver.verify_connectivity()
 
         with driver.session(database=database) as session:
-            session.execute_write(_write_caregiver, record)
+            session.execute_write(
+                _write_caregiver,
+                record,
+            )
 
     finally:
         driver.close()
@@ -177,16 +211,23 @@ def sync_caregiver_to_neo4j(caregiver):
 
 def _write_caregiver(tx, record):
     """
-    Write caregiver details and relationships in one transaction.
+    Create/update caregiver node and relationships
+    in a single Neo4j transaction.
     """
 
-    # Create or update the caregiver node.
+    # --------------------------------------------------------
+    # 1. Create or update caregiver node.
+    # --------------------------------------------------------
+
     tx.run(
         """
         MERGE (c:Caregiver {caregiver_id: $caregiver_id})
+
         SET c.age = $age,
             c.gender = $gender,
             c.experience_years = $experience_years,
+            c.qualifications = $qualifications,
+            c.bio = $bio,
             c.rating = $rating,
             c.availability = $availability,
             c.is_verified = $is_verified
@@ -194,7 +235,10 @@ def _write_caregiver(tx, record):
         record,
     ).consume()
 
-    # Remove the previous location relationship.
+    # --------------------------------------------------------
+    # 2. Replace caregiver location relationship.
+    # --------------------------------------------------------
+
     tx.run(
         """
         MATCH (c:Caregiver {caregiver_id: $caregiver_id})
@@ -204,18 +248,22 @@ def _write_caregiver(tx, record):
         record,
     ).consume()
 
-    # Add the current location.
     if record["location"]:
         tx.run(
             """
             MATCH (c:Caregiver {caregiver_id: $caregiver_id})
+
             MERGE (l:Location {name: $location})
+
             MERGE (c)-[:LOCATED_IN]->(l)
             """,
             record,
         ).consume()
 
-    # Remove previous service relationships.
+    # --------------------------------------------------------
+    # 3. Replace caregiver service relationships.
+    # --------------------------------------------------------
+
     tx.run(
         """
         MATCH (c:Caregiver {caregiver_id: $caregiver_id})
@@ -225,19 +273,24 @@ def _write_caregiver(tx, record):
         record,
     ).consume()
 
-    # Add current services.
     if record["services"]:
         tx.run(
             """
             MATCH (c:Caregiver {caregiver_id: $caregiver_id})
+
             UNWIND $services AS service_name
+
             MERGE (s:Service {name: service_name})
+
             MERGE (c)-[:PROVIDES]->(s)
             """,
             record,
         ).consume()
 
-    # Remove previous skill relationships.
+    # --------------------------------------------------------
+    # 4. Replace caregiver skill relationships.
+    # --------------------------------------------------------
+
     tx.run(
         """
         MATCH (c:Caregiver {caregiver_id: $caregiver_id})
@@ -247,28 +300,35 @@ def _write_caregiver(tx, record):
         record,
     ).consume()
 
-    # Add current skills.
     if record["skills"]:
         tx.run(
             """
             MATCH (c:Caregiver {caregiver_id: $caregiver_id})
+
             UNWIND $skills AS skill_name
+
             MERGE (sk:Skill {name: skill_name})
+
             MERGE (c)-[:HAS_SKILL]->(sk)
             """,
             record,
         ).consume()
 
 
+# ============================================================
+# RECOMMENDATION CANDIDATE RETRIEVAL
+# ============================================================
+
 def get_family_profile_candidates(profile_id):
     """
-    Retrieve caregiver candidates and family requirements from Neo4j.
+    Retrieve caregiver candidates and family requirements
+    from Neo4j.
 
-    The returned dictionaries use the field names expected by
+    Returned dictionaries use the field names expected by
     recommendations.feature_builder.build_candidate_features().
 
-    Django is still responsible for verifying caregiver records
-    before they are returned to the family.
+    Django remains responsible for checking caregiver records
+    and verification before recommendations are returned.
     """
 
     database = os.getenv("NEO4J_DATABASE", "neo4j")
@@ -333,6 +393,7 @@ def get_family_profile_candidates(profile_id):
             candidates = []
 
             for record in result:
+
                 caregiver_id = record.get("caregiver_id")
 
                 if not caregiver_id:
@@ -340,15 +401,20 @@ def get_family_profile_candidates(profile_id):
 
                 candidates.append({
                     "caregiver_id": str(caregiver_id),
+
                     "age": record.get("age"),
                     "gender": record.get("gender"),
+
                     "experience_years": (
                         record.get("experience_years") or 0
                     ),
+
                     "rating": record.get("rating") or 0,
+
                     "availability": (
                         record.get("availability") or ""
                     ),
+
                     "is_verified": bool(
                         record.get("is_verified")
                     ),
@@ -356,20 +422,27 @@ def get_family_profile_candidates(profile_id):
                     "required_services": (
                         record.get("required_services") or []
                     ),
+
                     "required_skills": (
                         record.get("required_skills") or []
                     ),
+
                     "provided_services": (
                         record.get("provided_services") or []
                     ),
-                    "skills": record.get("skills") or [],
+
+                    "skills": (
+                        record.get("skills") or []
+                    ),
 
                     "caregiver_locations": (
                         record.get("caregiver_locations") or []
                     ),
+
                     "profile_location": (
                         record.get("profile_location") or ""
                     ),
+
                     "care_arrangement": (
                         record.get("care_arrangement") or ""
                     ),

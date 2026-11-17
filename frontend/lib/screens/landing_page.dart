@@ -54,11 +54,14 @@ class _LandingPageState extends State<LandingPage> {
       if (sectionContext == null) continue;
 
       final renderObject = sectionContext.findRenderObject();
-      if (renderObject is! RenderBox || !renderObject.hasSize) continue;
+
+      if (renderObject is! RenderBox || !renderObject.hasSize) {
+        continue;
+      }
 
       final position = renderObject.localToGlobal(Offset.zero);
 
-      if (position.dy <= 170) {
+      if (position.dy <= 160) {
         currentSection = item;
       }
     }
@@ -72,6 +75,7 @@ class _LandingPageState extends State<LandingPage> {
 
   Future<void> _scrollToSection(String section) async {
     final sectionContext = _sectionKeys[section]?.currentContext;
+
     if (sectionContext == null) return;
 
     setState(() {
@@ -80,9 +84,9 @@ class _LandingPageState extends State<LandingPage> {
 
     await Scrollable.ensureVisible(
       sectionContext,
-      duration: const Duration(milliseconds: 850),
+      duration: const Duration(milliseconds: 750),
       curve: Curves.easeInOutCubic,
-      alignment: 0.02,
+      alignment: 0,
     );
   }
 
@@ -115,44 +119,48 @@ class _LandingPageState extends State<LandingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      body: Column(
-        children: [
-          _header(context),
-          _navigation(context),
-          Expanded(
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              child: Column(
-                children: [
-                  _section(
-                    navigationName: 'HOME',
-                    child: _hero(context),
-                  ),
-                  _section(
-                    navigationName: 'ABOUT US',
-                    child: _about(context),
-                  ),
-                  _section(
-                    navigationName: 'OUR SERVICES',
-                    child: _services(context),
-                  ),
-                  _section(
-                    navigationName: 'HOW IT WORKS',
-                    child: _howItWorks(context),
-                  ),
-                  _section(
-                    navigationName: 'FAQs',
-                    child: _faqs(context),
-                  ),
-                  _section(
-                    navigationName: 'CONTACT US',
-                    child: _contactUs(context),
-                  ),
-                ],
+      body: SafeArea(
+        top: true,
+        bottom: false,
+        child: Column(
+          children: [
+            _header(context),
+            _navigation(context),
+            Expanded(
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                child: Column(
+                  children: [
+                    _section(
+                      navigationName: 'HOME',
+                      child: _hero(context),
+                    ),
+                    _section(
+                      navigationName: 'ABOUT US',
+                      child: _about(context),
+                    ),
+                    _section(
+                      navigationName: 'OUR SERVICES',
+                      child: _services(context),
+                    ),
+                    _section(
+                      navigationName: 'HOW IT WORKS',
+                      child: _howItWorks(context),
+                    ),
+                    _section(
+                      navigationName: 'FAQs',
+                      child: _faqs(context),
+                    ),
+                    _section(
+                      navigationName: 'CONTACT US',
+                      child: _contactUs(context),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -162,40 +170,19 @@ class _LandingPageState extends State<LandingPage> {
   Widget _header(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
-    return Container(
-      color: colors.surface,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 35,
-        vertical: 18,
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.favorite,
-            color: colors.primary,
-            size: 34,
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'MzaziCare',
-            style: TextStyle(
-              fontSize: 27,
-              fontWeight: FontWeight.bold,
-              color: colors.primary,
-              letterSpacing: -1,
-            ),
-          ),
-          const Spacer(),
-          AnimatedBuilder(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+
+        Widget themeButton() {
+          return AnimatedBuilder(
             animation: ThemeController.instance,
             builder: (context, child) {
               final isDark =
                   Theme.of(context).brightness == Brightness.dark;
 
               return IconButton(
-                tooltip: isDark
-                    ? 'Switch to light mode'
-                    : 'Switch to dark mode',
+                tooltip: isDark ? 'Light mode' : 'Dark mode',
                 onPressed: () {
                   ThemeController.instance.setThemeMode(
                     isDark ? ThemeMode.light : ThemeMode.dark,
@@ -206,41 +193,124 @@ class _LandingPageState extends State<LandingPage> {
                       ? Icons.light_mode_outlined
                       : Icons.dark_mode_outlined,
                   color: colors.primary,
-                  size: 25,
                 ),
               );
             },
-          ),
-          const SizedBox(width: 8),
-          TextButton(
+          );
+        }
+
+        Widget logo() {
+          return Flexible(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.favorite,
+                  color: colors.primary,
+                  size: isMobile ? 27 : 34,
+                ),
+                const SizedBox(width: 7),
+                Flexible(
+                  child: Text(
+                    'MzaziCare',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: isMobile ? 22 : 27,
+                      fontWeight: FontWeight.bold,
+                      color: colors.primary,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        Widget loginButton() {
+          return TextButton(
             onPressed: () => _openAuth(context, role: 'client'),
             child: Text(
               'LOGIN',
               style: TextStyle(
                 color: colors.onSurface,
                 fontWeight: FontWeight.bold,
+                fontSize: isMobile ? 12 : 14,
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
+          );
+        }
+
+        Widget signupButton() {
+          return ElevatedButton(
             onPressed: () => _openAuth(context, role: 'client'),
             style: ElevatedButton.styleFrom(
               backgroundColor: colors.primary,
               foregroundColor: colors.onPrimary,
-              padding: const EdgeInsets.symmetric(
-                horizontal: 22,
-                vertical: 16,
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 17 : 22,
+                vertical: isMobile ? 11 : 16,
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
               ),
               elevation: 0,
             ),
-            child: const Text('SIGN UP'),
+            child: Text(
+              'SIGN UP',
+              style: TextStyle(fontSize: isMobile ? 11 : 13),
+            ),
+          );
+        }
+
+        if (isMobile) {
+          return Container(
+            width: double.infinity,
+            color: colors.surface,
+            padding: const EdgeInsets.fromLTRB(14, 5, 14, 8),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    logo(),
+                    const Spacer(),
+                    themeButton(),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    loginButton(),
+                    const SizedBox(width: 8),
+                    signupButton(),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Container(
+          width: double.infinity,
+          color: colors.surface,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 35,
+            vertical: 18,
           ),
-        ],
-      ),
+          child: Row(
+            children: [
+              logo(),
+              const Spacer(),
+              themeButton(),
+              const SizedBox(width: 8),
+              loginButton(),
+              const SizedBox(width: 8),
+              signupButton(),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -253,18 +323,17 @@ class _LandingPageState extends State<LandingPage> {
       width: double.infinity,
       color: colors.surface,
       padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 12,
+        horizontal: 5,
+        vertical: 8,
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
           children: _navigationItems.map((item) {
             final isActive = _activeSection == item;
 
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 9),
+              padding: const EdgeInsets.symmetric(horizontal: 5),
               child: TextButton(
                 onPressed: () => _scrollToSection(item),
                 style: TextButton.styleFrom(
@@ -274,7 +343,7 @@ class _LandingPageState extends State<LandingPage> {
                       ? colors.secondaryContainer
                       : Colors.transparent,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
+                    horizontal: 13,
                     vertical: 11,
                   ),
                   shape: RoundedRectangleBorder(
@@ -284,8 +353,8 @@ class _LandingPageState extends State<LandingPage> {
                 child: Text(
                   item,
                   style: TextStyle(
-                    fontSize: 12,
-                    letterSpacing: 1.1,
+                    fontSize: 11,
+                    letterSpacing: 0.7,
                     fontWeight:
                         isActive ? FontWeight.bold : FontWeight.w600,
                   ),
@@ -303,152 +372,173 @@ class _LandingPageState extends State<LandingPage> {
   Widget _hero(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 25,
-        vertical: 90,
-      ),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            colors.surface,
-            colors.secondaryContainer,
-            colors.surface,
-          ],
-        ),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 18,
-              vertical: 9,
-            ),
-            decoration: BoxDecoration(
-              color: colors.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: colors.outline),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.verified_user,
-                  color: colors.primary,
-                  size: 17,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'PERSONALISED ELDERLY HOME CARE',
-                  style: TextStyle(
-                    color: colors.primary,
-                    fontSize: 11,
-                    letterSpacing: 1.4,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 22 : 35,
+            vertical: isMobile ? 55 : 90,
+          ),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                colors.surface,
+                colors.secondaryContainer,
+                colors.surface,
               ],
             ),
           ),
-          const SizedBox(height: 30),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 850),
-            child: Text(
-              'Professional Caregivers for Your Loved Ones',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: colors.onSurface,
-                fontSize: 43,
-                height: 1.2,
-                fontWeight: FontWeight.bold,
-                letterSpacing: -1.2,
-              ),
-            ),
-          ),
-          const SizedBox(height: 22),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
-            child: Text(
-              'Find trusted caregivers for elderly care, companionship, '
-              'health monitoring and daily assistance at home. '
-              'Because your loved ones deserve compassionate care.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: colors.onSurfaceVariant,
-                fontSize: 17,
-                height: 1.8,
-              ),
-            ),
-          ),
-          const SizedBox(height: 35),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 15,
-            runSpacing: 12,
+          child: Column(
             children: [
-              ElevatedButton.icon(
-                onPressed: () => _openAuth(context, role: 'client'),
-                icon: const Icon(Icons.search),
-                label: const Text('FIND A CAREGIVER'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colors.primary,
-                  foregroundColor: colors.onPrimary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 27,
-                    vertical: 21,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(35),
-                  ),
-                  elevation: 3,
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 12 : 18,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: colors.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: colors.outline),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.verified_user,
+                      color: colors.primary,
+                      size: 17,
+                    ),
+                    const SizedBox(width: 7),
+                    Flexible(
+                      child: Text(
+                        'PERSONALISED ELDERLY HOME CARE',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: colors.primary,
+                          fontSize: isMobile ? 9 : 11,
+                          letterSpacing: isMobile ? 0.7 : 1.4,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              OutlinedButton(
-                onPressed: () =>
-                    _openAuth(context, role: 'caregiver'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: colors.primary,
-                  side: BorderSide(
-                    color: colors.primary,
-                    width: 1.5,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 27,
-                    vertical: 21,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(35),
+
+              SizedBox(height: isMobile ? 35 : 30),
+
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 850),
+                child: Text(
+                  'Professional Caregivers for Your Loved Ones',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: colors.onSurface,
+                    fontSize: isMobile ? 34 : 43,
+                    height: 1.2,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -1.1,
                   ),
                 ),
-                child: const Text('BECOME A CAREGIVER'),
+              ),
+
+              SizedBox(height: isMobile ? 20 : 22),
+
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Text(
+                  'Find trusted caregivers for elderly care, companionship, '
+                  'health monitoring and daily assistance at home. '
+                  'Because your loved ones deserve compassionate care.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: colors.onSurfaceVariant,
+                    fontSize: isMobile ? 15 : 17,
+                    height: 1.8,
+                  ),
+                ),
+              ),
+
+              SizedBox(height: isMobile ? 28 : 35),
+
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () =>
+                        _openAuth(context, role: 'client'),
+                    icon: const Icon(Icons.search, size: 19),
+                    label: const Text('FIND A CAREGIVER'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colors.primary,
+                      foregroundColor: colors.onPrimary,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? 22 : 27,
+                        vertical: isMobile ? 17 : 21,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(35),
+                      ),
+                      elevation: 3,
+                    ),
+                  ),
+                  OutlinedButton(
+                    onPressed: () =>
+                        _openAuth(context, role: 'caregiver'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colors.primary,
+                      side: BorderSide(
+                        color: colors.primary,
+                        width: 1.5,
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isMobile ? 18 : 27,
+                        vertical: isMobile ? 17 : 21,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(35),
+                      ),
+                    ),
+                    child: const Text(
+                      'BECOME A CAREGIVER',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+
+              SizedBox(height: isMobile ? 32 : 45),
+
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: isMobile ? 17 : 35,
+                runSpacing: 15,
+                children: const [
+                  _HeroBenefit(
+                    icon: Icons.verified_outlined,
+                    label: 'Verified profiles',
+                  ),
+                  _HeroBenefit(
+                    icon: Icons.favorite_border,
+                    label: 'Personalised care',
+                  ),
+                  _HeroBenefit(
+                    icon: Icons.support_agent,
+                    label: 'Family support',
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 45),
-          const Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 35,
-            runSpacing: 15,
-            children: [
-              _HeroBenefit(
-                icon: Icons.verified_outlined,
-                label: 'Verified profiles',
-              ),
-              _HeroBenefit(
-                icon: Icons.favorite_border,
-                label: 'Personalised care',
-              ),
-              _HeroBenefit(
-                icon: Icons.support_agent,
-                label: 'Family support',
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -456,13 +546,14 @@ class _LandingPageState extends State<LandingPage> {
 
   Widget _about(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Container(
       width: double.infinity,
       color: colors.surface,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 30,
-        vertical: 70,
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 22 : 30,
+        vertical: isMobile ? 50 : 70,
       ),
       child: Column(
         children: [
@@ -481,7 +572,7 @@ class _LandingPageState extends State<LandingPage> {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: colors.onSurface,
-              fontSize: 30,
+              fontSize: isMobile ? 25 : 30,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -497,7 +588,7 @@ class _LandingPageState extends State<LandingPage> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: colors.onSurfaceVariant,
-                fontSize: 16,
+                fontSize: 15,
                 height: 1.8,
               ),
             ),
@@ -511,6 +602,7 @@ class _LandingPageState extends State<LandingPage> {
 
   Widget _services(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
     final services = [
       (
@@ -538,9 +630,9 @@ class _LandingPageState extends State<LandingPage> {
     return Container(
       color: colors.surfaceContainerLow,
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 30,
-        vertical: 65,
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 20 : 30,
+        vertical: isMobile ? 50 : 65,
       ),
       child: Column(
         children: [
@@ -558,15 +650,16 @@ class _LandingPageState extends State<LandingPage> {
             'Our Home Care Services',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 30,
+              fontSize: isMobile ? 26 : 30,
               color: colors.onSurface,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 35),
+          const SizedBox(height: 30),
           LayoutBuilder(
             builder: (context, constraints) {
-              final width = constraints.maxWidth > 800
+              final columns = constraints.maxWidth > 800 ? 2 : 1;
+              final width = columns == 2
                   ? (constraints.maxWidth - 15) / 2
                   : constraints.maxWidth;
 
@@ -577,11 +670,13 @@ class _LandingPageState extends State<LandingPage> {
                   return SizedBox(
                     width: width,
                     child: Container(
-                      padding: const EdgeInsets.all(25),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: colors.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: colors.outlineVariant),
+                        border: Border.all(
+                          color: colors.outlineVariant,
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: colors.shadow.withValues(alpha: 0.06),
@@ -593,8 +688,8 @@ class _LandingPageState extends State<LandingPage> {
                       child: Row(
                         children: [
                           Container(
-                            height: 60,
-                            width: 60,
+                            height: 52,
+                            width: 52,
                             decoration: BoxDecoration(
                               color: colors.secondaryContainer,
                               borderRadius: BorderRadius.circular(14),
@@ -602,28 +697,30 @@ class _LandingPageState extends State<LandingPage> {
                             child: Icon(
                               service.$1,
                               color: colors.primary,
-                              size: 30,
+                              size: 27,
                             ),
                           ),
-                          const SizedBox(width: 18),
+                          const SizedBox(width: 15),
                           Expanded(
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   service.$2,
                                   style: TextStyle(
-                                    fontSize: 18,
+                                    fontSize: 17,
                                     fontWeight: FontWeight.bold,
                                     color: colors.onSurface,
                                   ),
                                 ),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 7),
                                 Text(
                                   service.$3,
                                   style: TextStyle(
                                     color: colors.onSurfaceVariant,
                                     height: 1.5,
+                                    fontSize: 13,
                                   ),
                                 ),
                               ],
@@ -646,6 +743,7 @@ class _LandingPageState extends State<LandingPage> {
 
   Widget _howItWorks(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
     final steps = [
       (
@@ -673,9 +771,9 @@ class _LandingPageState extends State<LandingPage> {
     return Container(
       width: double.infinity,
       color: colors.surface,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 30,
-        vertical: 70,
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 22 : 30,
+        vertical: isMobile ? 50 : 70,
       ),
       child: Column(
         children: [
@@ -694,7 +792,7 @@ class _LandingPageState extends State<LandingPage> {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: colors.onSurface,
-              fontSize: 30,
+              fontSize: isMobile ? 26 : 30,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -702,10 +800,10 @@ class _LandingPageState extends State<LandingPage> {
           Wrap(
             alignment: WrapAlignment.center,
             spacing: 20,
-            runSpacing: 25,
+            runSpacing: 30,
             children: steps.map((step) {
               return SizedBox(
-                width: 230,
+                width: isMobile ? 145 : 230,
                 child: Column(
                   children: [
                     CircleAvatar(
@@ -727,7 +825,7 @@ class _LandingPageState extends State<LandingPage> {
                       style: TextStyle(
                         color: colors.onSurface,
                         fontWeight: FontWeight.bold,
-                        fontSize: 17,
+                        fontSize: 16,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -737,6 +835,7 @@ class _LandingPageState extends State<LandingPage> {
                       style: TextStyle(
                         color: colors.onSurfaceVariant,
                         height: 1.5,
+                        fontSize: 13,
                       ),
                     ),
                   ],
@@ -753,6 +852,7 @@ class _LandingPageState extends State<LandingPage> {
 
   Widget _faqs(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
     final questions = [
       (
@@ -790,9 +890,9 @@ class _LandingPageState extends State<LandingPage> {
     return Container(
       width: double.infinity,
       color: colors.surfaceContainerLow,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 30,
-        vertical: 70,
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 18 : 30,
+        vertical: isMobile ? 50 : 70,
       ),
       child: Column(
         children: [
@@ -811,7 +911,7 @@ class _LandingPageState extends State<LandingPage> {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: colors.onSurface,
-              fontSize: 30,
+              fontSize: isMobile ? 25 : 30,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -820,48 +920,57 @@ class _LandingPageState extends State<LandingPage> {
             return Container(
               width: double.infinity,
               margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
+              child: Material(
                 color: colors.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(13),
-                border: Border.all(color: colors.outlineVariant),
-              ),
-              child: Theme(
-                data: Theme.of(context).copyWith(
-                  dividerColor: Colors.transparent,
-                ),
-                child: ExpansionTile(
-                  iconColor: colors.primary,
-                  collapsedIconColor: colors.primary,
-                  tilePadding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 5,
-                  ),
-                  title: Text(
-                    question.$1,
-                    style: TextStyle(
-                      color: colors.onSurface,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                clipBehavior: Clip.antiAlias,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(13),
+                    border: Border.all(
+                      color: colors.outlineVariant,
                     ),
                   ),
-                  childrenPadding: const EdgeInsets.fromLTRB(
-                    18,
-                    0,
-                    18,
-                    18,
-                  ),
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        question.$2,
+                  child: Theme(
+                    data: Theme.of(context).copyWith(
+                      dividerColor: Colors.transparent,
+                    ),
+                    child: ExpansionTile(
+                      iconColor: colors.primary,
+                      collapsedIconColor: colors.primary,
+                      tilePadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 5,
+                      ),
+                      title: Text(
+                        question.$1,
                         style: TextStyle(
-                          color: colors.onSurfaceVariant,
-                          height: 1.6,
+                          color: colors.onSurface,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
                         ),
                       ),
+                      childrenPadding: const EdgeInsets.fromLTRB(
+                        16,
+                        0,
+                        16,
+                        18,
+                      ),
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            question.$2,
+                            style: TextStyle(
+                              color: colors.onSurfaceVariant,
+                              height: 1.6,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             );
@@ -875,6 +984,7 @@ class _LandingPageState extends State<LandingPage> {
 
   Widget _contactUs(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
     final features = [
       (
@@ -902,9 +1012,9 @@ class _LandingPageState extends State<LandingPage> {
     return Container(
       width: double.infinity,
       color: colors.surface,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 30,
-        vertical: 70,
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 20 : 30,
+        vertical: isMobile ? 50 : 70,
       ),
       child: Column(
         children: [
@@ -923,7 +1033,7 @@ class _LandingPageState extends State<LandingPage> {
             textAlign: TextAlign.center,
             style: TextStyle(
               color: colors.onSurface,
-              fontSize: 30,
+              fontSize: isMobile ? 27 : 30,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -937,7 +1047,7 @@ class _LandingPageState extends State<LandingPage> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: colors.onSurfaceVariant,
-                fontSize: 16,
+                fontSize: 15,
                 height: 1.7,
               ),
             ),
@@ -945,19 +1055,20 @@ class _LandingPageState extends State<LandingPage> {
           const SizedBox(height: 25),
           Wrap(
             alignment: WrapAlignment.center,
-            spacing: 15,
+            spacing: 12,
             runSpacing: 12,
             children: [
               ElevatedButton.icon(
-                onPressed: () => _openAuth(context, role: 'client'),
+                onPressed: () =>
+                    _openAuth(context, role: 'client'),
                 icon: const Icon(Icons.person_outline),
                 label: const Text('FAMILY ACCOUNT'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: colors.primary,
                   foregroundColor: colors.onPrimary,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 23,
-                    vertical: 17,
+                    horizontal: 20,
+                    vertical: 16,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
@@ -967,14 +1078,16 @@ class _LandingPageState extends State<LandingPage> {
               OutlinedButton.icon(
                 onPressed: () =>
                     _openAuth(context, role: 'caregiver'),
-                icon: const Icon(Icons.volunteer_activism_outlined),
+                icon: const Icon(
+                  Icons.volunteer_activism_outlined,
+                ),
                 label: const Text('CAREGIVER ACCOUNT'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: colors.primary,
                   side: BorderSide(color: colors.primary),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 23,
-                    vertical: 17,
+                    horizontal: 20,
+                    vertical: 16,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
@@ -983,11 +1096,10 @@ class _LandingPageState extends State<LandingPage> {
               ),
             ],
           ),
-          const SizedBox(height: 65),
-          Divider(color: colors.outline),
-          const SizedBox(height: 50),
 
-          // WHY CHOOSE MZAZICARE
+          SizedBox(height: isMobile ? 45 : 65),
+          Divider(color: colors.outline),
+          SizedBox(height: isMobile ? 35 : 50),
 
           Text(
             'THE MZAZICARE DIFFERENCE',
@@ -1003,16 +1115,17 @@ class _LandingPageState extends State<LandingPage> {
             'Why Choose MzaziCare?',
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 30,
+              fontSize: isMobile ? 26 : 30,
               color: colors.onSurface,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 30),
+
           LayoutBuilder(
             builder: (context, constraints) {
               final cardWidth = constraints.maxWidth > 800
-                  ? (constraints.maxWidth - 30) / 2
+                  ? (constraints.maxWidth - 15) / 2
                   : constraints.maxWidth;
 
               return Wrap(
@@ -1022,17 +1135,19 @@ class _LandingPageState extends State<LandingPage> {
                   return SizedBox(
                     width: cardWidth,
                     child: Container(
-                      padding: const EdgeInsets.all(22),
+                      padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: colors.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(15),
-                        border: Border.all(color: colors.outlineVariant),
+                        border: Border.all(
+                          color: colors.outlineVariant,
+                        ),
                       ),
                       child: Row(
                         children: [
                           Container(
-                            height: 55,
-                            width: 55,
+                            height: 50,
+                            width: 50,
                             decoration: BoxDecoration(
                               color: colors.secondaryContainer,
                               borderRadius: BorderRadius.circular(13),
@@ -1040,20 +1155,21 @@ class _LandingPageState extends State<LandingPage> {
                             child: Icon(
                               feature.$1,
                               color: colors.primary,
-                              size: 28,
+                              size: 27,
                             ),
                           ),
-                          const SizedBox(width: 15),
+                          const SizedBox(width: 14),
                           Expanded(
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   feature.$2,
                                   style: TextStyle(
                                     color: colors.onSurface,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                                    fontSize: 15,
                                   ),
                                 ),
                                 const SizedBox(height: 7),
@@ -1062,6 +1178,7 @@ class _LandingPageState extends State<LandingPage> {
                                   style: TextStyle(
                                     color: colors.onSurfaceVariant,
                                     height: 1.5,
+                                    fontSize: 13,
                                   ),
                                 ),
                               ],
@@ -1076,15 +1193,15 @@ class _LandingPageState extends State<LandingPage> {
             },
           ),
 
-          const SizedBox(height: 60),
+          SizedBox(height: isMobile ? 40 : 60),
 
           // FINAL CALL TO ACTION
 
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 25,
-              vertical: 45,
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 20 : 25,
+              vertical: isMobile ? 35 : 45,
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(22),
@@ -1110,7 +1227,7 @@ class _LandingPageState extends State<LandingPage> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: colors.onPrimary,
-                    fontSize: 27,
+                    fontSize: isMobile ? 24 : 27,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1122,7 +1239,7 @@ class _LandingPageState extends State<LandingPage> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: colors.onPrimary.withValues(alpha: 0.9),
-                    fontSize: 16,
+                    fontSize: 14,
                     height: 1.7,
                   ),
                 ),
@@ -1134,8 +1251,8 @@ class _LandingPageState extends State<LandingPage> {
                     backgroundColor: colors.surface,
                     foregroundColor: colors.primary,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 18,
+                      horizontal: 30,
+                      vertical: 17,
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30),
@@ -1158,7 +1275,7 @@ class _LandingPageState extends State<LandingPage> {
   }
 }
 
-// SLIDE-IN ANIMATION WHEN A SECTION ENTERS THE SCREEN
+// SECTION REVEAL ANIMATION
 
 class _RevealOnScroll extends StatefulWidget {
   const _RevealOnScroll({
@@ -1191,7 +1308,7 @@ class _RevealOnScrollState extends State<_RevealOnScroll>
     );
 
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.16),
+      begin: const Offset(0, 0.12),
       end: Offset.zero,
     ).animate(
       CurvedAnimation(
@@ -1231,7 +1348,9 @@ class _RevealOnScrollState extends State<_RevealOnScroll>
 
     final renderObject = context.findRenderObject();
 
-    if (renderObject is! RenderBox || !renderObject.hasSize) return;
+    if (renderObject is! RenderBox || !renderObject.hasSize) {
+      return;
+    }
 
     final position = renderObject.localToGlobal(Offset.zero);
     final screenHeight = MediaQuery.of(context).size.height;
@@ -1292,7 +1411,7 @@ class _HeroBenefit extends StatelessWidget {
           label,
           style: TextStyle(
             color: colors.onSurface,
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: FontWeight.w500,
           ),
         ),

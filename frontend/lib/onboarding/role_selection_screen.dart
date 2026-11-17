@@ -1,17 +1,16 @@
+
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
-
 import '../dashboards/family_dashboard_screen.dart';
-
-
 import 'caregiver_profile_screen.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
   const RoleSelectionScreen({super.key});
 
   @override
-  State<RoleSelectionScreen> createState() => _RoleSelectionScreenState();
+  State<RoleSelectionScreen> createState() =>
+      _RoleSelectionScreenState();
 }
 
 class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
@@ -38,20 +37,20 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
       if (!mounted) return;
 
       if (selectedRole == 'client') {
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute<void>(
-      builder: (_) => const FamilyDashboardScreen(),
-    ),
-  );
-} else {
-  Navigator.pushReplacement(
-    context,
-    MaterialPageRoute<void>(
-      builder: (_) => const CaregiverProfileScreen(),
-    ),
-  );
-}
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => const FamilyDashboardScreen(),
+          ),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => const CaregiverProfileScreen(),
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -62,19 +61,21 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
         ),
       );
     } finally {
-      if (mounted) setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9FC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Choose Your Role'),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF174A45),
-        elevation: 0,
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -84,29 +85,29 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(
+                Icon(
                   Icons.health_and_safety,
                   size: 64,
-                  color: Color(0xFF16877A),
+                  color: colors.primary,
                 ),
                 const SizedBox(height: 20),
-                const Text(
+                Text(
                   'Welcome to MzaziCare',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 28,
+                  style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF174A45),
+                    color: colors.onSurface,
                   ),
                 ),
                 const SizedBox(height: 10),
-                const Text(
+                Text(
                   'How would you like to use our elderly home-care platform?',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16),
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 28),
-
                 _buildRoleCard(
                   role: 'client',
                   title: 'Family / Client',
@@ -114,30 +115,34 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                       'Find suitable caregivers for an elderly family member.',
                   icon: Icons.family_restroom,
                 ),
-
                 const SizedBox(height: 16),
-
                 _buildRoleCard(
                   role: 'caregiver',
                   title: 'Caregiver',
-                  description: 'Create a professional profile and offer home-care services.',
+                  description:
+                      'Create a professional profile and offer home-care services.',
                   icon: Icons.volunteer_activism,
                 ),
-
                 const SizedBox(height: 28),
-
                 ElevatedButton(
                   onPressed: isLoading ? null : continueToProfile,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF16877A),
-                    foregroundColor: Colors.white,
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
                     minimumSize: const Size(double.infinity, 52),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: colors.onPrimary,
+                          ),
+                        )
                       : const Text(
                           'Continue',
                           style: TextStyle(
@@ -160,26 +165,41 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
     required String description,
     required IconData icon,
   }) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     final isSelected = selectedRole == role;
 
     return Card(
       elevation: isSelected ? 3 : 1,
-      color: isSelected ? const Color(0xFFE5F4F0) : Colors.white,
+      color: isSelected
+          ? colors.primaryContainer
+          : colors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(
-          color: isSelected ? const Color(0xFF16877A) : Colors.grey.shade300,
+          color: isSelected
+              ? colors.primary
+              : colors.outlineVariant,
           width: isSelected ? 2 : 1,
         ),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () => setState(() => selectedRole = role),
+        onTap: isLoading
+            ? null
+            : () => setState(() => selectedRole = role),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Row(
             children: [
-              Icon(icon, size: 38, color: const Color(0xFF16877A)),
+              Icon(
+                icon,
+                size: 38,
+                color: isSelected
+                    ? colors.onPrimaryContainer
+                    : colors.primary,
+              ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -187,18 +207,30 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        fontSize: 17,
+                      style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
+                        color: isSelected
+                            ? colors.onPrimaryContainer
+                            : colors.onSurface,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(description),
+                    Text(
+                      description,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: isSelected
+                            ? colors.onPrimaryContainer
+                            : colors.onSurfaceVariant,
+                      ),
+                    ),
                   ],
                 ),
               ),
               if (isSelected)
-                const Icon(Icons.check_circle, color: Color(0xFF16877A)),
+                Icon(
+                  Icons.check_circle,
+                  color: colors.onPrimaryContainer,
+                ),
             ],
           ),
         ),

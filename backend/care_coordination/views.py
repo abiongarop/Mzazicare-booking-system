@@ -1,3 +1,4 @@
+
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction
@@ -14,6 +15,7 @@ from recommendations.firebase_authentication import FirebaseAuthentication
 from accounts.models import MzaziCareProfile
 from clients.models import FamilyCareProfile
 from caregivers.models import Caregiver
+from notifications.models import Notification
 
 from .models import (
     CareSchedule,
@@ -39,14 +41,11 @@ ACTIVE_BOOKING_STATUSES = (
 
 
 # ---------------------------------------------------------------------
-# EMAIL NOTIFICATIONS
+# EMAIL AND IN-APP NOTIFICATIONS
 # ---------------------------------------------------------------------
 
 def get_profile_email(profile):
-    """
-    Gets an email address from either the supplied profile
-    or its related MzaziCare account.
-    """
+    """Get an email address from a profile or its related account."""
 
     if profile is None:
         return None
@@ -66,8 +65,8 @@ def get_profile_email(profile):
 
 def send_profile_email(profile, subject, message):
     """
-    Sends an email notification without interrupting the main
-    booking or messaging operation if email delivery fails.
+    Send an email without interrupting the main operation
+    if email delivery fails.
     """
 
     recipient = get_profile_email(profile)
@@ -93,13 +92,36 @@ def send_profile_email(profile, subject, message):
 
 
 def notify_after_commit(profile, subject, message):
-    """
-    Sends an email only after the database transaction succeeds.
-    """
+    """Send an email only after the database transaction succeeds."""
 
     transaction.on_commit(
         lambda p=profile, s=subject, m=message:
             send_profile_email(p, s, m)
+    )
+
+
+def create_in_app_notification(
+    recipient,
+    notification_type,
+    title,
+    body,
+    schedule=None,
+    conversation=None,
+    message=None,
+):
+    """Create an in-app notification for a MzaziCare account."""
+
+    if recipient is None:
+        return None
+
+    return Notification.objects.create(
+        recipient=recipient,
+        notification_type=notification_type,
+        title=title,
+        body=body,
+        schedule=schedule,
+        conversation=conversation,
+        message=message,
     )
 
 
@@ -109,21 +131,19 @@ def notify_after_commit(profile, subject, message):
 
 def get_or_create_conversation(family, caregiver):
     """
-    Reuses the existing conversation for a family-caregiver pair,
-    or creates one if it does not exist.
+    Reuse the existing conversation for a family-caregiver pair,
+    or create one if it does not exist.
     """
 
-    conversation, created = Conversation.objects.get_or_create(
+    return Conversation.objects.get_or_create(
         family_profile=family,
         caregiver=caregiver,
     )
 
-    return conversation, created
-
 
 def get_schedule_queryset_for_account(account):
     """
-    Returns only bookings the authenticated user is permitted to see.
+    Return only bookings the authenticated user is permitted to see.
     Admins can monitor all bookings.
     """
 
@@ -245,9 +265,9 @@ class CareScheduleListCreateView(SecureAPIView):
     def get(self, request):
         account = self.get_account(request)
 
-        schedules = get_schedule_queryset_for_account(account)
-
-        schedules = schedules.order_by("scheduled_start")
+        schedules = get_schedule_queryset_for_account(
+            account
+        ).order_by("scheduled_start")
 
         return Response({
             "schedules": CareScheduleSerializer(
@@ -274,30 +294,22 @@ class CareScheduleListCreateView(SecureAPIView):
 
         if caregiver is None:
             raise ValidationError({
-                "caregiver": (
-                    "Select a recommended caregiver."
-                )
+                "caregiver": "Select a recommended caregiver."
             })
 
         if not caregiver.is_verified:
             raise ValidationError({
-                "caregiver": (
-                    "The selected caregiver is not verified."
-                )
+                "caregiver": "The selected caregiver is not verified."
             })
 
         if not caregiver.availability:
             raise ValidationError({
-                "caregiver": (
-                    "The selected caregiver is not available."
-                )
+                "caregiver": "The selected caregiver is not available."
             })
 
         if start is None or end is None:
             raise ValidationError({
-                "scheduled_start": (
-                    "Start and end times are required."
-                )
+                "scheduled_start": "Start and end times are required."
             })
 
         if timezone.is_naive(start) or timezone.is_naive(end):
@@ -309,23 +321,17 @@ class CareScheduleListCreateView(SecureAPIView):
 
         if start <= timezone.now():
             raise ValidationError({
-                "scheduled_start": (
-                    "Choose a future start time."
-                )
+                "scheduled_start": "Choose a future start time."
             })
 
         if end <= start:
             raise ValidationError({
-                "scheduled_end": (
-                    "End time must be later than the start time."
-                )
+                "scheduled_end": "End time must be later than the start time."
             })
 
         if not isinstance(services, list) or not services:
             raise ValidationError({
-                "services": (
-                    "Select at least one care service."
-                )
+                "services": "Select at least one care service."
             })
 
         try:
@@ -340,16 +346,11 @@ class CareScheduleListCreateView(SecureAPIView):
 
         if len(requested_service_ids) != len(services):
             raise ValidationError({
-                "services": (
-                    "Duplicate service IDs are not allowed."
-                )
+                "services": "Duplicate service IDs are not allowed."
             })
 
         provided_service_ids = set(
-            caregiver.services.values_list(
-                "pk",
-                flat=True,
-            )
+            caregiver.services.values_list("pk", flat=True)
         )
 
         if not requested_service_ids.issubset(
@@ -357,8 +358,7 @@ class CareScheduleListCreateView(SecureAPIView):
         ):
             raise ValidationError({
                 "services": (
-                    "The caregiver does not provide all "
-                    "selected services."
+                    "The caregiver does not provide all selected services."
                 )
             })
 
@@ -377,8 +377,7 @@ class CareScheduleListCreateView(SecureAPIView):
             ):
                 raise ValidationError({
                     "caregiver": (
-                        "The caregiver is no longer available "
-                        "for booking."
+                        "The caregiver is no longer available for booking."
                     )
                 })
 
@@ -392,19 +391,16 @@ class CareScheduleListCreateView(SecureAPIView):
             if conflict:
                 raise ValidationError({
                     "scheduled_start": (
-                        "The caregiver already has a booking "
-                        "during this period. Choose another "
-                        "time or caregiver."
+                        "The caregiver already has a booking during "
+                        "this period. Choose another time or caregiver."
                     )
                 })
 
-            # Create or reuse the shared conversation.
             conversation, _ = get_or_create_conversation(
                 family,
                 locked_caregiver,
             )
 
-            # Create the booking and link it to the conversation.
             schedule = serializer.save(
                 family_profile=family,
                 caregiver=locked_caregiver,
@@ -413,7 +409,20 @@ class CareScheduleListCreateView(SecureAPIView):
                 services=sorted(requested_service_ids),
             )
 
-            # Notify the caregiver after the transaction succeeds.
+            # In-app notification for the caregiver.
+            create_in_app_notification(
+                recipient=locked_caregiver.account,
+                notification_type="new_booking",
+                title="New booking request",
+                body=(
+                    f"{family.account.full_name} has sent you a "
+                    f"new booking request (#{schedule.pk})."
+                ),
+                schedule=schedule,
+                conversation=conversation,
+            )
+
+            # Email notification for the caregiver.
             notify_after_commit(
                 locked_caregiver.account,
                 "New MzaziCare booking request",
@@ -421,8 +430,8 @@ class CareScheduleListCreateView(SecureAPIView):
                     f"You have received a new booking request "
                     f"from {family.account.full_name}.\n\n"
                     f"Booking reference: #{schedule.pk}\n"
-                    f"Please sign in to MzaziCare to review "
-                    f"and accept or decline this request."
+                    "Please sign in to MzaziCare to review and "
+                    "accept or decline this request."
                 ),
             )
 
@@ -448,7 +457,9 @@ class CareScheduleDetailView(SecureAPIView):
     def get_schedule(self, request, pk):
         account = self.get_account(request)
 
-        queryset = get_schedule_queryset_for_account(account)
+        queryset = get_schedule_queryset_for_account(
+            account
+        )
 
         return get_object_or_404(
             queryset,
@@ -468,8 +479,8 @@ class CareScheduleDetailView(SecureAPIView):
 
         if account.role == "admin":
             raise PermissionDenied(
-                "Admins can monitor bookings but cannot "
-                "change booking decisions here."
+                "Admins can monitor bookings but cannot change "
+                "booking decisions here."
             )
 
         if schedule.status in (
@@ -481,8 +492,7 @@ class CareScheduleDetailView(SecureAPIView):
                 "This booking can no longer be changed."
             )
 
-        # Caregivers cannot accept or decline through this endpoint.
-        # They must use CaregiverBookingDecisionView.
+        # Caregiver status updates.
         if account.role == "caregiver":
 
             if set(request.data.keys()) != {"status"}:
@@ -508,10 +518,9 @@ class CareScheduleDetailView(SecureAPIView):
             ):
                 raise ValidationError({
                     "status": (
-                        f"Cannot change status from "
-                        f"'{schedule.status}' to '{new_status}'. "
-                        "Use the booking decision endpoint "
-                        "to accept or decline pending requests."
+                        f"Cannot change status from '{schedule.status}' "
+                        f"to '{new_status}'. Use the booking decision "
+                        "endpoint to accept or decline pending requests."
                     )
                 })
 
@@ -524,15 +533,44 @@ class CareScheduleDetailView(SecureAPIView):
                 ]
             )
 
+            # Notify the family when the caregiver cancels or completes
+            # a booking.
+            if new_status in ("cancelled", "completed"):
+                notification_type = (
+                    "booking_cancelled"
+                    if new_status == "cancelled"
+                    else "booking_updated"
+                )
+
+                notification_title = (
+                    "Booking cancelled"
+                    if new_status == "cancelled"
+                    else "Care visit completed"
+                )
+
+                notification_body = (
+                    f"Your caregiver has cancelled booking #{schedule.pk}."
+                    if new_status == "cancelled"
+                    else f"Your caregiver has marked booking #{schedule.pk} "
+                         "as completed."
+                )
+
+                create_in_app_notification(
+                    recipient=schedule.family_profile.account,
+                    notification_type=notification_type,
+                    title=notification_title,
+                    body=notification_body,
+                    schedule=schedule,
+                    conversation=schedule.conversation,
+                )
+
             return Response(
                 CareScheduleSerializer(schedule).data
             )
 
         # Only families can edit their own pending bookings.
         if account.role != "client":
-            raise PermissionDenied(
-                "Unsupported account role."
-            )
+            raise PermissionDenied("Unsupported account role.")
 
         if schedule.status != "pending":
             raise ValidationError(
@@ -549,12 +587,9 @@ class CareScheduleDetailView(SecureAPIView):
             "updated_at",
         }
 
-        if forbidden_fields.intersection(
-            request.data.keys()
-        ):
+        if forbidden_fields.intersection(request.data.keys()):
             raise ValidationError(
-                "Ownership and booking status fields cannot "
-                "be edited here."
+                "Ownership and booking status fields cannot be edited here."
             )
 
         serializer = CareScheduleSerializer(
@@ -587,30 +622,22 @@ class CareScheduleDetailView(SecureAPIView):
 
         if end <= start:
             raise ValidationError({
-                "scheduled_end": (
-                    "End time must be later than the start time."
-                )
+                "scheduled_end": "End time must be later than the start time."
             })
 
         if start <= timezone.now():
             raise ValidationError({
-                "scheduled_start": (
-                    "Choose a future date and time."
-                )
+                "scheduled_start": "Choose a future date and time."
             })
 
         if caregiver is None or not caregiver.is_verified:
             raise ValidationError({
-                "caregiver": (
-                    "Choose a verified caregiver."
-                )
+                "caregiver": "Choose a verified caregiver."
             })
 
         if not caregiver.availability:
             raise ValidationError({
-                "caregiver": (
-                    "The caregiver is not available."
-                )
+                "caregiver": "The caregiver is not available."
             })
 
         try:
@@ -625,23 +652,16 @@ class CareScheduleDetailView(SecureAPIView):
 
         if not requested_service_ids:
             raise ValidationError({
-                "services": (
-                    "Select at least one care service."
-                )
+                "services": "Select at least one care service."
             })
 
         if len(requested_service_ids) != len(services):
             raise ValidationError({
-                "services": (
-                    "Duplicate service IDs are not allowed."
-                )
+                "services": "Duplicate service IDs are not allowed."
             })
 
         provided_service_ids = set(
-            caregiver.services.values_list(
-                "pk",
-                flat=True,
-            )
+            caregiver.services.values_list("pk", flat=True)
         )
 
         if not requested_service_ids.issubset(
@@ -649,10 +669,11 @@ class CareScheduleDetailView(SecureAPIView):
         ):
             raise ValidationError({
                 "services": (
-                    "The caregiver does not provide all "
-                    "selected services."
+                    "The caregiver does not provide all selected services."
                 )
             })
+
+        previous_caregiver = schedule.caregiver
 
         with transaction.atomic():
 
@@ -668,9 +689,7 @@ class CareScheduleDetailView(SecureAPIView):
                 or not locked_caregiver.availability
             ):
                 raise ValidationError({
-                    "caregiver": (
-                        "The caregiver is no longer available."
-                    )
+                    "caregiver": "The caregiver is no longer available."
                 })
 
             conflict = CareSchedule.objects.filter(
@@ -685,13 +704,11 @@ class CareScheduleDetailView(SecureAPIView):
             if conflict:
                 raise ValidationError({
                     "scheduled_start": (
-                        "The caregiver already has a booking "
-                        "during this period."
+                        "The caregiver already has a booking during "
+                        "this period."
                     )
                 })
 
-            # If the family changes the caregiver, the booking
-            # must use the conversation belonging to the new pair.
             conversation, _ = get_or_create_conversation(
                 schedule.family_profile,
                 locked_caregiver,
@@ -701,6 +718,36 @@ class CareScheduleDetailView(SecureAPIView):
                 caregiver=locked_caregiver,
                 conversation=conversation,
                 services=sorted(requested_service_ids),
+            )
+
+            # If the caregiver changed, notify the previous caregiver.
+            if (
+                previous_caregiver
+                and previous_caregiver.pk != locked_caregiver.pk
+            ):
+                create_in_app_notification(
+                    recipient=previous_caregiver.account,
+                    notification_type="booking_cancelled",
+                    title="Booking reassigned",
+                    body=(
+                        f"Booking #{schedule.pk} has been reassigned "
+                        "to another caregiver."
+                    ),
+                    schedule=schedule,
+                    conversation=schedule.conversation,
+                )
+
+            # Notify the currently assigned caregiver.
+            create_in_app_notification(
+                recipient=locked_caregiver.account,
+                notification_type="booking_updated",
+                title="Booking request updated",
+                body=(
+                    f"A family has updated booking #{schedule.pk}. "
+                    "Please review the updated request."
+                ),
+                schedule=schedule,
+                conversation=conversation,
             )
 
             notify_after_commit(
@@ -732,6 +779,7 @@ class CancelCareScheduleView(SecureAPIView):
                     "family_profile__account",
                     "caregiver",
                     "caregiver__account",
+                    "conversation",
                 ),
                 pk=pk,
                 family_profile=family,
@@ -761,12 +809,27 @@ class CancelCareScheduleView(SecureAPIView):
             )
 
             if schedule.caregiver:
+
+                # In-app notification for the caregiver.
+                create_in_app_notification(
+                    recipient=schedule.caregiver.account,
+                    notification_type="booking_cancelled",
+                    title="Booking cancelled",
+                    body=(
+                        f"The family has cancelled booking "
+                        f"#{schedule.pk}."
+                    ),
+                    schedule=schedule,
+                    conversation=schedule.conversation,
+                )
+
+                # Email notification for the caregiver.
                 notify_after_commit(
                     schedule.caregiver.account,
                     "MzaziCare booking cancelled",
                     (
-                        f"Booking #{schedule.pk} has been "
-                        f"cancelled by the family.\n\n"
+                        f"Booking #{schedule.pk} has been cancelled "
+                        "by the family.\n\n"
                         "Sign in to MzaziCare to view the update."
                     ),
                 )
@@ -797,18 +860,18 @@ class CaregiverBookingDecisionView(SecureAPIView):
         with transaction.atomic():
 
             schedule = get_object_or_404(
-    CareSchedule.objects
-    .select_for_update(of=("self",))
-    .select_related(
-        "family_profile",
-        "family_profile__account",
-        "caregiver",
-        "caregiver__account",
-        "conversation",
-    ),
-    pk=pk,
-    caregiver=caregiver,
-)
+                CareSchedule.objects
+                .select_for_update(of=("self",))
+                .select_related(
+                    "family_profile",
+                    "family_profile__account",
+                    "caregiver",
+                    "caregiver__account",
+                    "conversation",
+                ),
+                pk=pk,
+                caregiver=caregiver,
+            )
 
             if schedule.status != "pending":
                 raise ValidationError(
@@ -823,8 +886,6 @@ class CaregiverBookingDecisionView(SecureAPIView):
 
             if decision == "accept":
 
-                # Check that no other confirmed or ongoing booking
-                # conflicts with this requested time.
                 conflict = CareSchedule.objects.filter(
                     caregiver=caregiver,
                     scheduled_start__lt=schedule.scheduled_end,
@@ -845,6 +906,13 @@ class CaregiverBookingDecisionView(SecureAPIView):
 
                 schedule.status = "confirmed"
 
+                notification_type = "booking_accepted"
+                notification_title = "Booking accepted"
+                notification_body = (
+                    f"{caregiver.account.full_name} has accepted "
+                    f"your booking request (#{schedule.pk})."
+                )
+
                 email_subject = (
                     "Your MzaziCare booking is confirmed"
                 )
@@ -859,6 +927,14 @@ class CaregiverBookingDecisionView(SecureAPIView):
             else:
 
                 schedule.status = "declined"
+
+                notification_type = "booking_declined"
+                notification_title = "Booking declined"
+                notification_body = (
+                    f"{caregiver.account.full_name} has declined "
+                    f"your booking request (#{schedule.pk}). "
+                    "You can find another caregiver."
+                )
 
                 email_subject = (
                     "Your MzaziCare booking was declined"
@@ -876,6 +952,16 @@ class CaregiverBookingDecisionView(SecureAPIView):
                     "status",
                     "updated_at",
                 ]
+            )
+
+            # Notify the family about the decision.
+            create_in_app_notification(
+                recipient=schedule.family_profile.account,
+                notification_type=notification_type,
+                title=notification_title,
+                body=notification_body,
+                schedule=schedule,
+                conversation=schedule.conversation,
             )
 
             notify_after_commit(
@@ -938,7 +1024,6 @@ class ConversationListCreateView(SecureAPIView):
             ).data
         })
 
-    # POST: Create or retrieve a conversation.
     def post(self, request):
         account = self.get_account(request)
 
@@ -970,7 +1055,8 @@ class ConversationListCreateView(SecureAPIView):
             if not schedule_id:
                 raise ValidationError({
                     "schedule_id": (
-                        "Select one of your bookings to start a conversation."
+                        "Select one of your bookings to start "
+                        "a conversation."
                     )
                 })
 
@@ -998,7 +1084,6 @@ class ConversationListCreateView(SecureAPIView):
                 "Only families and caregivers can start conversations."
             )
 
-        # Reuse an existing conversation or create a new one.
         conversation, created = get_or_create_conversation(
             family,
             caregiver,
@@ -1063,12 +1148,28 @@ class ConversationMessagesView(SecureAPIView):
         ).all()
 
         # Mark messages from the other participant as read.
+        read_time = timezone.now()
+
         messages.filter(
             read_at__isnull=True
         ).exclude(
             sender_profile=account
         ).update(
-            read_at=timezone.now()
+            read_at=read_time
+        )
+
+        # Mark the related in-app message notifications as read too.
+        Notification.objects.filter(
+            recipient=account,
+            notification_type="new_message",
+            conversation=conversation,
+            is_read=False,
+            message__read_at__isnull=False,
+        ).exclude(
+            message__sender_profile=account
+        ).update(
+            is_read=True,
+            read_at=read_time,
         )
 
         return Response({
@@ -1100,12 +1201,26 @@ class ConversationMessagesView(SecureAPIView):
                 update_fields=["updated_at"]
             )
 
-            # Notify the other participant.
+            # Determine the other participant.
             if account.role == "client":
                 recipient = conversation.caregiver.account
             else:
                 recipient = conversation.family_profile.account
 
+            # Create an in-app notification for the recipient.
+            create_in_app_notification(
+                recipient=recipient,
+                notification_type="new_message",
+                title="New message",
+                body=(
+                    f"{account.full_name} sent you a message: "
+                    f"{message.body[:100]}"
+                ),
+                conversation=conversation,
+                message=message,
+            )
+
+            # Send an email notification after the transaction succeeds.
             notify_after_commit(
                 recipient,
                 "New message on MzaziCare",
@@ -1179,9 +1294,7 @@ class CareUpdateListCreateView(SecureAPIView):
 
         if not schedule_id:
             raise ValidationError({
-                "schedule_id": (
-                    "This field is required."
-                )
+                "schedule_id": "This field is required."
             })
 
         schedule = get_object_or_404(

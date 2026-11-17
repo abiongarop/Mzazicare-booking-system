@@ -55,6 +55,18 @@ class Caregiver(models.Model):
 
     availability = models.CharField(max_length=100, blank=True)
 
+    preferred_working_time = models.CharField(
+    max_length=20,
+    choices=[
+        ('morning', 'Morning'),
+        ('afternoon', 'Afternoon'),
+        ('evening', 'Evening'),
+        ('flexible', 'Flexible'),
+    ],
+    blank=True,
+    default='',
+)
+
     skills = models.ManyToManyField(
         Skill,
         blank=True,

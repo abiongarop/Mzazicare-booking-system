@@ -32,4 +32,9 @@ urlpatterns = [
     path("api/", include("care_coordination.urls")),
 
     path("api/admin/", include("admin_portal.urls")),
+
+    path(
+    "api/notifications/",
+    include("notifications.urls"),
+),
 ]

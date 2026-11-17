@@ -40,6 +40,7 @@ class CaregiverSerializer(serializers.ModelSerializer):
             "rating",
             "location",
             "availability",
+            "preferred_working_time",
             "skills",
             "services",
             "is_verified",

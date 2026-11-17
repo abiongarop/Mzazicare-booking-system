@@ -26,6 +26,9 @@ class _CaregiverScheduleScreenState
 
   final Set<int> _processingIds = {};
 
+  ColorScheme get _colors => Theme.of(context).colorScheme;
+  TextTheme get _text => Theme.of(context).textTheme;
+
   @override
   void initState() {
     super.initState();
@@ -48,11 +51,12 @@ class _CaregiverScheduleScreenState
 
     try {
       final response = await ApiService.getCareSchedules();
+      final responseMap = _toMap(response);
 
-      final data = response['results'] ??
-          response['schedules'] ??
-          response['care_schedules'] ??
-          response['data'];
+      final data = responseMap['results'] ??
+          responseMap['schedules'] ??
+          responseMap['care_schedules'] ??
+          responseMap['data'];
 
       final schedules = data is List
           ? data
@@ -147,17 +151,17 @@ class _CaregiverScheduleScreenState
     switch (status.toLowerCase().replaceAll(' ', '_')) {
       case 'confirmed':
       case 'accepted':
-        return Colors.green.shade700;
+        return Colors.green;
       case 'completed':
-        return Colors.blue.shade700;
+        return Colors.blue;
       case 'cancelled':
       case 'declined':
       case 'rejected':
-        return Colors.red.shade700;
+        return _colors.error;
       case 'in_progress':
-        return Colors.teal.shade700;
+        return _colors.tertiary;
       default:
-        return Colors.orange.shade800;
+        return Colors.orange;
     }
   }
 
@@ -216,7 +220,6 @@ class _CaregiverScheduleScreenState
       await _loadSchedules();
     } catch (e) {
       if (!mounted) return;
-
       _showMessage('Could not update booking: $e');
     } finally {
       if (mounted) {
@@ -277,7 +280,6 @@ class _CaregiverScheduleScreenState
       }
     } catch (e) {
       if (!mounted) return;
-
       _showMessage('Could not open family conversation: $e');
     }
   }
@@ -305,26 +307,24 @@ class _CaregiverScheduleScreenState
           Icon(
             icon,
             size: 17,
-            color: MzaziCareColors.primaryDark,
+            color: _colors.primary,
           ),
           const SizedBox(width: 10),
           SizedBox(
             width: 105,
             child: Text(
               '$label:',
-              style: const TextStyle(
+              style: _text.bodySmall?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: MzaziCareColors.text,
-                fontSize: 12,
+                color: _colors.onSurface,
               ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                color: MzaziCareColors.textMuted,
-                fontSize: 12,
+              style: _text.bodySmall?.copyWith(
+                color: _colors.onSurfaceVariant,
                 height: 1.4,
               ),
             ),
@@ -353,11 +353,11 @@ class _CaregiverScheduleScreenState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Divider(height: 25),
-          const Text(
+          Text(
             'Booking decision',
-            style: TextStyle(
+            style: _text.titleSmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: MzaziCareColors.text,
+              color: _colors.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -367,20 +367,15 @@ class _CaregiverScheduleScreenState
                 child: OutlinedButton.icon(
                   onPressed: processing
                       ? null
-                      : () => _decideBooking(
-                            schedule,
-                            'decline',
-                          ),
+                      : () => _decideBooking(schedule, 'decline'),
                   icon: const Icon(Icons.close),
                   label: const Text('Decline'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red.shade700,
+                    foregroundColor: _colors.error,
                     side: BorderSide(
-                      color: Colors.red.shade300,
+                      color: _colors.error.withValues(alpha: 0.5),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 13,
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
                   ),
                 ),
               ),
@@ -389,10 +384,7 @@ class _CaregiverScheduleScreenState
                 child: FilledButton.icon(
                   onPressed: processing
                       ? null
-                      : () => _decideBooking(
-                            schedule,
-                            'accept',
-                          ),
+                      : () => _decideBooking(schedule, 'accept'),
                   icon: processing
                       ? const SizedBox(
                           height: 17,
@@ -407,9 +399,7 @@ class _CaregiverScheduleScreenState
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.green.shade700,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 13,
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 13),
                   ),
                 ),
               ),
@@ -554,6 +544,8 @@ class _CaregiverScheduleScreenState
       fallback: '',
     );
 
+    final statusColor = _statusColor(status);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 14),
       child: Padding(
@@ -568,14 +560,14 @@ class _CaregiverScheduleScreenState
                   height: 45,
                   width: 45,
                   decoration: BoxDecoration(
-                    color: MzaziCareColors.surfaceSoft,
+                    color: _colors.primaryContainer,
                     borderRadius: BorderRadius.circular(13),
                   ),
                   child: Icon(
                     widget.showAssignments
                         ? Icons.assignment_ind_outlined
                         : Icons.calendar_month_outlined,
-                    color: MzaziCareColors.primaryDark,
+                    color: _colors.onPrimaryContainer,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -585,83 +577,56 @@ class _CaregiverScheduleScreenState
                     children: [
                       Text(
                         family,
-                        style: const TextStyle(
-                          color: MzaziCareColors.text,
+                        style: _text.titleSmall?.copyWith(
+                          color: _colors.onSurface,
                           fontWeight: FontWeight.bold,
-                          fontSize: 15,
                         ),
                       ),
                       const SizedBox(height: 5),
                       Text(
                         _formatDate(start),
-                        style: const TextStyle(
-                          color: MzaziCareColors.textMuted,
-                          fontSize: 12,
+                        style: _text.bodySmall?.copyWith(
+                          color: _colors.onSurfaceVariant,
                         ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _statusColor(status).withValues(alpha: 0.10),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    status.replaceAll('_', ' ').toUpperCase(),
-                    style: TextStyle(
-                      color: _statusColor(status),
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      status.replaceAll('_', ' ').toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
             const Divider(height: 25),
-            _detailRow(
-              Icons.person_outline,
-              'Family',
-              family,
-            ),
-            _detailRow(
-              Icons.phone_outlined,
-              'Phone',
-              familyPhone,
-            ),
-            _detailRow(
-              Icons.email_outlined,
-              'Email',
-              familyEmail,
-            ),
-            _detailRow(
-              Icons.location_on_outlined,
-              'Location',
-              familyLocation,
-            ),
+            _detailRow(Icons.person_outline, 'Family', family),
+            _detailRow(Icons.phone_outlined, 'Phone', familyPhone),
+            _detailRow(Icons.email_outlined, 'Email', familyEmail),
+            _detailRow(Icons.location_on_outlined, 'Location', familyLocation),
             if (client.isNotEmpty)
-              _detailRow(
-                Icons.elderly_outlined,
-                'Care recipient',
-                client,
-              ),
+              _detailRow(Icons.elderly_outlined, 'Care recipient', client),
             if (recipientAge.isNotEmpty)
-              _detailRow(
-                Icons.cake_outlined,
-                'Age',
-                recipientAge,
-              ),
+              _detailRow(Icons.cake_outlined, 'Age', recipientAge),
             if (recipientGender.isNotEmpty)
-              _detailRow(
-                Icons.person_outline,
-                'Gender',
-                recipientGender,
-              ),
+              _detailRow(Icons.person_outline, 'Gender', recipientGender),
             if (careLevel.isNotEmpty)
               _detailRow(
                 Icons.health_and_safety_outlined,
@@ -684,13 +649,7 @@ class _CaregiverScheduleScreenState
               'Services',
               services,
             ),
-            _detailRow(
-              Icons.notes_outlined,
-              'Notes',
-              notes,
-            ),
-
-            // Booking actions
+            _detailRow(Icons.notes_outlined, 'Notes', notes),
             _bookingActions(schedule, status),
           ],
         ),
@@ -709,17 +668,16 @@ class _CaregiverScheduleScreenState
                   ? Icons.assignment_outlined
                   : Icons.event_available_outlined,
               size: 45,
-              color: MzaziCareColors.primaryDark,
+              color: _colors.primary,
             ),
             const SizedBox(height: 13),
             Text(
               widget.showAssignments
                   ? 'No care assignments yet'
                   : 'No scheduled visits yet',
-              style: const TextStyle(
+              style: _text.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: MzaziCareColors.text,
+                color: _colors.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -728,8 +686,8 @@ class _CaregiverScheduleScreenState
                   ? 'When a family booking is assigned to you, it will appear here.'
                   : 'Your upcoming care visits will appear here.',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: MzaziCareColors.textMuted,
+              style: _text.bodyMedium?.copyWith(
+                color: _colors.onSurfaceVariant,
                 height: 1.5,
               ),
             ),
@@ -745,23 +703,25 @@ class _CaregiverScheduleScreenState
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            const Icon(
+            Icon(
               Icons.cloud_off_outlined,
               size: 40,
-              color: MzaziCareColors.primaryDark,
+              color: _colors.primary,
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Unable to load your care records.',
-              style: TextStyle(fontWeight: FontWeight.bold),
+              style: _text.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: _colors.onSurface,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
               _error ?? 'An unexpected error occurred.',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: MzaziCareColors.textMuted,
-                fontSize: 12,
+              style: _text.bodySmall?.copyWith(
+                color: _colors.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 12),
@@ -783,7 +743,7 @@ class _CaregiverScheduleScreenState
         : 'My Schedule';
 
     return Scaffold(
-      backgroundColor: MzaziCareColors.background,
+      backgroundColor: _colors.surface,
       appBar: AppBar(
         title: Text(title),
         actions: [
@@ -803,11 +763,13 @@ class _CaregiverScheduleScreenState
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   colors: [
-                    MzaziCareColors.primaryDark,
-                    MzaziCareColors.primary,
+                    _colors.primary,
+                    _colors.primaryContainer,
                   ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -818,14 +780,14 @@ class _CaregiverScheduleScreenState
                     widget.showAssignments
                         ? Icons.assignment_ind_outlined
                         : Icons.calendar_month_outlined,
-                    color: Colors.white,
+                    color: _colors.onPrimary,
                     size: 30,
                   ),
                   const SizedBox(height: 12),
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: _colors.onPrimary,
                       fontSize: 21,
                       fontWeight: FontWeight.bold,
                     ),
@@ -835,8 +797,8 @@ class _CaregiverScheduleScreenState
                     widget.showAssignments
                         ? 'Review the care requests and clients assigned to you.'
                         : 'Keep track of your upcoming and previous care visits.',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: _colors.onPrimary.withValues(alpha: 0.9),
                       height: 1.5,
                     ),
                   ),
@@ -848,15 +810,15 @@ class _CaregiverScheduleScreenState
               widget.showAssignments
                   ? 'Assigned care requests'
                   : 'Your care visits',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: _text.titleMedium?.copyWith(
+                color: _colors.onSurface,
+              ),
             ),
             const SizedBox(height: 13),
             if (_loading)
               const Padding(
                 padding: EdgeInsets.all(35),
-                child: Center(
-                  child: CircularProgressIndicator(),
-                ),
+                child: Center(child: CircularProgressIndicator()),
               )
             else if (_error != null)
               _errorView()
@@ -865,9 +827,8 @@ class _CaregiverScheduleScreenState
             else ...[
               Text(
                 '${_schedules.length} record${_schedules.length == 1 ? '' : 's'}',
-                style: const TextStyle(
-                  color: MzaziCareColors.textMuted,
-                  fontSize: 12,
+                style: _text.bodySmall?.copyWith(
+                  color: _colors.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: 12),

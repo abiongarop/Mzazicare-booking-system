@@ -1,7 +1,7 @@
+
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
-import '../theme/app_theme.dart';
 
 class CareUpdatesScreen extends StatefulWidget {
   const CareUpdatesScreen({super.key});
@@ -41,7 +41,6 @@ class _CareUpdatesScreenState extends State<CareUpdatesScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-
       setState(() {
         _error = e.toString();
         _loading = false;
@@ -97,19 +96,14 @@ class _CareUpdatesScreenState extends State<CareUpdatesScreen> {
   }
 
   Widget _updateCard(Map<String, dynamic> update) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final activities = update['activities'];
     final followUp = update['follow_up_required'] == true;
 
     return Card(
       elevation: 1,
       margin: const EdgeInsets.only(bottom: 14),
-      color: MzaziCareColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(
-          color: MzaziCareColors.border,
-        ),
-      ),
       child: Padding(
         padding: const EdgeInsets.all(17),
         child: Column(
@@ -119,10 +113,10 @@ class _CareUpdatesScreenState extends State<CareUpdatesScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CircleAvatar(
-                  backgroundColor: MzaziCareColors.accent,
+                  backgroundColor: colors.primaryContainer,
                   child: Icon(
                     _typeIcon(update['update_type']),
-                    color: MzaziCareColors.primaryDark,
+                    color: colors.onPrimaryContainer,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -132,18 +126,15 @@ class _CareUpdatesScreenState extends State<CareUpdatesScreen> {
                     children: [
                       Text(
                         update['title']?.toString() ?? 'Care update',
-                        style: const TextStyle(
-                          color: MzaziCareColors.text,
-                          fontSize: 16,
+                        style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         _typeLabel(update['update_type']),
-                        style: const TextStyle(
-                          color: MzaziCareColors.primaryDark,
-                          fontSize: 12,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: colors.primary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -152,24 +143,17 @@ class _CareUpdatesScreenState extends State<CareUpdatesScreen> {
                 ),
               ],
             ),
-
             const SizedBox(height: 13),
-
             Text(
               update['body']?.toString() ?? '',
-              style: const TextStyle(
-                color: MzaziCareColors.text,
-                height: 1.5,
-              ),
+              style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
             ),
-
             if (activities is List && activities.isNotEmpty) ...[
               const SizedBox(height: 14),
-              const Text(
+              Text(
                 'Activities recorded',
-                style: TextStyle(
+                style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: MzaziCareColors.text,
                 ),
               ),
               const SizedBox(height: 8),
@@ -179,17 +163,17 @@ class _CareUpdatesScreenState extends State<CareUpdatesScreen> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.check_circle_outline,
                         size: 17,
-                        color: MzaziCareColors.primary,
+                        color: colors.primary,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           activity.toString(),
-                          style: const TextStyle(
-                            color: MzaziCareColors.textMuted,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colors.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -198,28 +182,27 @@ class _CareUpdatesScreenState extends State<CareUpdatesScreen> {
                 ),
               ),
             ],
-
             if (followUp) ...[
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFF4DF),
+                  color: colors.tertiaryContainer,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Row(
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
                       Icons.info_outline,
-                      color: Color(0xFF946200),
+                      color: colors.onTertiaryContainer,
                     ),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'The caregiver has indicated that follow-up is required.',
-                        style: TextStyle(
-                          color: Color(0xFF765000),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colors.onTertiaryContainer,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -228,35 +211,31 @@ class _CareUpdatesScreenState extends State<CareUpdatesScreen> {
                 ),
               ),
             ],
-
-            const Divider(
+            Divider(
               height: 26,
-              color: MzaziCareColors.border,
+              color: colors.outlineVariant,
             ),
-
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.calendar_today_outlined,
                   size: 15,
-                  color: MzaziCareColors.textMuted,
+                  color: colors.onSurfaceVariant,
                 ),
                 const SizedBox(width: 7),
                 Expanded(
                   child: Text(
                     _dateLabel(update['created_at']),
-                    style: const TextStyle(
-                      color: MzaziCareColors.textMuted,
-                      fontSize: 12,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
                     ),
                   ),
                 ),
                 Text(
                   'Visit #${update['schedule_id'] ?? '—'}',
-                  style: const TextStyle(
-                    color: MzaziCareColors.primaryDark,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: colors.primary,
                     fontWeight: FontWeight.w600,
-                    fontSize: 12,
                   ),
                 ),
               ],
@@ -268,31 +247,29 @@ class _CareUpdatesScreenState extends State<CareUpdatesScreen> {
   }
 
   Widget _errorState() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.cloud_off,
-              size: 45,
-              color: MzaziCareColors.primary,
-            ),
+            Icon(Icons.cloud_off, size: 45, color: colors.primary),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Unable to load visit updates.',
-              style: TextStyle(
+              style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: MzaziCareColors.text,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              _error!,
+              _error ?? 'An unexpected error occurred.',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: MzaziCareColors.textMuted,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
               ),
             ),
             const SizedBox(height: 16),
@@ -307,33 +284,33 @@ class _CareUpdatesScreenState extends State<CareUpdatesScreen> {
   }
 
   Widget _emptyState() {
-    return const Center(
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    return Center(
       child: Padding(
-        padding: EdgeInsets.all(28),
+        padding: const EdgeInsets.all(28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.health_and_safety_outlined,
               size: 54,
-              color: MzaziCareColors.primary,
+              color: colors.primary,
             ),
-            SizedBox(height: 14),
+            const SizedBox(height: 14),
             Text(
               'No visit updates yet',
-              style: TextStyle(
-                fontSize: 18,
+              style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: MzaziCareColors.text,
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
-              'Updates recorded by your caregiver after a visit '
-              'will appear here.',
+              'Updates recorded by your caregiver after a visit will appear here.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: MzaziCareColors.textMuted,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colors.onSurfaceVariant,
               ),
             ),
           ],
@@ -344,8 +321,11 @@ class _CareUpdatesScreenState extends State<CareUpdatesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: MzaziCareColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Visit Updates'),
         actions: [
@@ -370,13 +350,12 @@ class _CareUpdatesScreenState extends State<CareUpdatesScreen> {
                           vertical: 18,
                         ),
                         children: [
-                          const Padding(
-                            padding: EdgeInsets.only(bottom: 16),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
                             child: Text(
-                              'Updates about completed care activities, '
-                              'observations and follow-up needs.',
-                              style: TextStyle(
-                                color: MzaziCareColors.textMuted,
+                              'Updates about completed care activities, observations and follow-up needs.',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: colors.onSurfaceVariant,
                                 height: 1.4,
                               ),
                             ),
@@ -385,7 +364,6 @@ class _CareUpdatesScreenState extends State<CareUpdatesScreen> {
                             if (item is! Map) {
                               return const SizedBox.shrink();
                             }
-
                             return _updateCard(
                               Map<String, dynamic>.from(item),
                             );

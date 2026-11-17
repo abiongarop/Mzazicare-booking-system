@@ -71,7 +71,13 @@ class ApiService {
         jsonContent: jsonContent,
       );
 
-      var response = await request(headers).timeout(_timeout);
+      debugPrint('API REQUEST: Authorization header present: '
+    '${headers.containsKey('Authorization')}');
+
+var response = await request(headers).timeout(_timeout);
+
+debugPrint('API RESPONSE STATUS: ${response.statusCode}');
+debugPrint('API RESPONSE BODY: ${response.body}');
 
       // Refresh Firebase token once after an authentication failure.
       if (response.statusCode == 401 &&
@@ -85,7 +91,7 @@ class ApiService {
 
         response = await request(headers).timeout(_timeout);
       }
-
+debugPrint('FINAL API STATUS: ${response.statusCode}');
       return response;
     } on TimeoutException {
       throw Exception(
@@ -486,6 +492,50 @@ static Future<Map<String, dynamic>> startConversationForBooking(
     );
   }
 
+
+  // ---------------------------------------------------------
+  // NOTIFICATIONS
+  // ---------------------------------------------------------
+
+  /// Fetch unread message, booking and notification counts.
+  ///
+  /// GET /api/notifications/summary/
+  static Future<Map<String, dynamic>> getNotificationSummary() {
+    return _get('/notifications/summary/');
+  }
+
+  /// Fetch notifications for the currently authenticated account.
+  ///
+  /// Set unreadOnly to true to retrieve only unread notifications.
+  ///
+  /// GET /api/notifications/
+  /// GET /api/notifications/?unread=true
+  static Future<Map<String, dynamic>> getNotifications({
+    bool unreadOnly = false,
+  }) {
+    final query = unreadOnly ? '?unread=true' : '';
+    return _get('/notifications/$query');
+  }
+
+  /// Mark one notification as read.
+  ///
+  /// POST /api/notifications/{id}/read/
+  static Future<Map<String, dynamic>> markNotificationAsRead(
+    int notificationId,
+  ) {
+    return _post(
+      '/notifications/$notificationId/read/',
+      {},
+    );
+  }
+
+  /// Mark all notifications belonging to the current account as read.
+  ///
+  /// POST /api/notifications/read-all/
+  static Future<Map<String, dynamic>> markAllNotificationsAsRead() {
+    return _post('/notifications/read-all/', {});
+  }
+
   // ---------------------------------------------------------
   // CARE UPDATES
   // ---------------------------------------------------------
@@ -603,4 +653,15 @@ static Future<Map<String, dynamic>> startConversationForBooking(
       {'status': status},
     );
   }
+  static Future<void> debugMyProfile() async {
+  try {
+    final response = await _get('/profile/me/');
+    debugPrint('MY PROFILE RESPONSE: $response');
+  } catch (e) {
+    debugPrint('PROFILE ERROR: $e');
+  }
 }
+}
+
+
+
